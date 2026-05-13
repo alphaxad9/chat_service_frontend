@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from './apis/user/authentication/AuthContext';
 import Authentication from './project/freatures/login_and_register/ui/authentication';
 import Chat from './project/pages/chat/chat';
 import Community from './project/pages/community/community';
-import LandingPage from './project/pages/landingPage';
 import FirstProfileCompletion from './project/pages/profile/first_profile_complete/profile_completion';
 import Profile from './project/pages/profile/ui/profile';
 import { Provider } from 'react-redux';
@@ -42,7 +41,6 @@ function App() {
                 v7_relativeSplatPath: true,
               }}
             >
-             
               <Routes>
                 <Route path="/authentication" element={<Authentication />} />
 
@@ -59,16 +57,46 @@ function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <LandingPage />
+                      <Feed />
                     </ProtectedRoute>
                   }
-                >
-                  <Route index element={<Feed />} />
-                  <Route path="explore" element={<Explore />} />
-                  <Route path="community" element={<Community />} />
-                  <Route path="chat" element={<Chat />} />
-                  <Route path="profile" element={<Profile />} />
-                </Route>
+                />
+                
+                <Route
+                  path="/explore"
+                  element={
+                    <ProtectedRoute>
+                      <Explore />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/community"
+                  element={
+                    <ProtectedRoute>
+                      <Community />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/chat"
+                  element={
+                    <ProtectedRoute>
+                      <Chat />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </BrowserRouter>
           </AuthGate>
