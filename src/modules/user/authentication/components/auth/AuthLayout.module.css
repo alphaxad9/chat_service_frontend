@@ -1,0 +1,13 @@
+:root {
+--auth-max-width: 28rem; /* ~448px */
+--auth-gap: 1rem;
+}
+
+.container {
+max-width: var(--auth-max-width);
+}
+
+.stack {
+display: grid;
+gap: var(--auth-gap);
+}

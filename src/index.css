@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+@keyframes loadBar {
+  0% {
+    width: 0%;
+  }
+  30% {
+    width: 30%;
+  }
+  50% {
+    width: 50%;
+  }
+  70% {
+    width: 70%;
+  }
+  85% {
+    width: 85%;
+  }
+  95% {
+    width: 95%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-load-bar {
+  animation: loadBar 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+
+.auth-container {
+  @apply max-w-md w-full bg-gradient-to-br from-black to-gray-900 shadow-xl rounded-2xl overflow-hidden;
+}
