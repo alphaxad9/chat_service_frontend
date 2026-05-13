@@ -80,8 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         enabled: Boolean(profile?.id),
         retry: 1,
     });
-    console.log(myProfile?.user.profile_picture)
-    console.log(myProfile)
     // AUTH MUTATIONS
     const { mutateAsync: register, isPending: isRegistering } = useMutation({
         mutationFn: apiRegister,
