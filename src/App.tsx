@@ -5,13 +5,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from './apis/user/authentication/AuthContext';
 
 import Authentication from './project/freatures/login_and_register/ui/authentication';
-import Chat from './project/pages/chat/chat';
-import Community from './project/pages/community/community';
 import FirstProfileCompletion from './project/pages/profile/first_profile_complete/profile_completion';
 import Profile from './project/pages/profile/ui/profile';
 import { Provider } from 'react-redux';
 import { store } from './project/entities/store';
-import Explore from './project/pages/explore/explore';
 import Feed from './project/pages/home/feed';
 import ProtectedRoute from './project/routes/ProtectedRoute';
 import FullScreenLoader from './project/entities/ui/components/FullScreenLoader';
@@ -42,8 +39,10 @@ function App() {
               }}
             >
               <Routes>
+                {/* Public routes */}
                 <Route path="/authentication" element={<Authentication />} />
 
+                {/* Protected routes */}
                 <Route
                   path="/complete_profile"
                   element={
@@ -53,6 +52,7 @@ function App() {
                   }
                 />
 
+                {/* Main feed - shows rooms list and optionally a selected chat */}
                 <Route
                   path="/"
                   element={
@@ -62,33 +62,17 @@ function App() {
                   }
                 />
                 
+                {/* Chat route with roomId parameter - renders same Feed component */}
                 <Route
-                  path="/explore"
+                  path="/chat/:roomId"
                   element={
                     <ProtectedRoute>
-                      <Explore />
+                      <Feed />
                     </ProtectedRoute>
                   }
                 />
-                
-                <Route
-                  path="/community"
-                  element={
-                    <ProtectedRoute>
-                      <Community />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                <Route
-                  path="/chat"
-                  element={
-                    <ProtectedRoute>
-                      <Chat />
-                    </ProtectedRoute>
-                  }
-                />
-                
+
+                {/* Profile route */}
                 <Route
                   path="/profile"
                   element={
