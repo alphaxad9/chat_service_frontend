@@ -10,13 +10,13 @@ interface UpperLayerProps {
     username: string;
     first_name: string | null;
     last_name: string | null;
-    profilePicture: string | null;
+    profile_picture: string | null;
   };
 }
 
 const UpperLayer = ({ coverImage, user }: UpperLayerProps) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
+  console.log(user.profile_picture)
   const openSettings = () => setIsSettingsOpen(true);
   const closeSettings = () => setIsSettingsOpen(false);
 
@@ -58,9 +58,9 @@ const UpperLayer = ({ coverImage, user }: UpperLayerProps) => {
 
       {/* Profile Avatar */}
       <div className="absolute bottom-4 right-4">
-        {user.profilePicture ? (
+        {user.profile_picture ? (
           <img
-            src={user.profilePicture}
+            src={user.profile_picture}
             alt={`${user.username} profile`}
             className="w-24 h-24 rounded-full border-4 border-white object-cover"
           />

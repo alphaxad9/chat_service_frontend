@@ -45,6 +45,7 @@ export const updateMyProfile = async (data: UpdateProfileRequest): Promise<MyUse
       '/users/profile/update/',
       data,
     );
+    console.log(response.data)
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {

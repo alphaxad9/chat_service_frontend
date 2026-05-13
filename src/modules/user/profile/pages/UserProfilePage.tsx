@@ -23,7 +23,7 @@ export const UserProfilePage: React.FC = () => {
         <div className="ml-auto flex items-center gap-2">
           <Link to="/" className="text-sm hover:underline hidden sm:inline">Home</Link>
           <Avatar
-            src={profile?.profilePicture || null}
+            src={profile?.profile_picture || null}
             alt={profile?.username || "User"}
             size={32}
           />
@@ -35,7 +35,7 @@ export const UserProfilePage: React.FC = () => {
         <div className="h-40 sm:h-48 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
         <div className="px-4 sm:px-6">
           <div className="-mt-10 sm:-mt-12 flex items-end gap-3">
-            <Avatar src={profile?.profilePicture || null} alt={profile?.username || "User"} size={88} />
+            <Avatar src={profile?.profile_picture || null} alt={profile?.username || "User"} size={88} />
             <div className="pb-2">
               <h1 className="text-xl sm:text-2xl font-semibold">
                 {profile?.first_name || profile?.last_name

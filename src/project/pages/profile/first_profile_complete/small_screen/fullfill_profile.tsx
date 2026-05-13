@@ -54,7 +54,7 @@ const FillSmallScreen = () => {
         phone: myProfile.phone ?? null,
         location: myProfile.location ?? null,
         cover_image: myProfile.cover_image ?? null,
-        profileImage: myProfile.user?.profilePicture ?? null,
+        profileImage: myProfile.user?.profile_picture ?? null,
         locationOption: myProfile.location
           ? { value: myProfile.location, label: myProfile.location }
           : null,

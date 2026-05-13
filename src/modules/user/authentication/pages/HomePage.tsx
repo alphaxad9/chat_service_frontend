@@ -60,7 +60,7 @@ export const HomePage: React.FC = () => {
         <div className="ml-auto">
           <Link to="/profile" className="flex items-center gap-2">
             <Avatar
-              src={profile?.profilePicture || null}
+              src={profile?.profile_picture || null}
               alt={profile?.username || "User"}
               size={32}
             />

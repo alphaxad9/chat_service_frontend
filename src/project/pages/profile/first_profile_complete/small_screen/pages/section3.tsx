@@ -67,7 +67,7 @@ const SectionThree: React.FC<SectionThreeProps> = ({ formState, setFormState }) 
     const userPayload: UpdateProfileFormData = {
       first_name,
       last_name,
-      profilePicture: '', // not updating image here, but required by type — send empty or omit if backend allows
+      profile_picture: '', // not updating image here, but required by type — send empty or omit if backend allows
     };
 
     try {

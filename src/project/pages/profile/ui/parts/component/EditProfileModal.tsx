@@ -96,11 +96,11 @@ const updateMyProfileMutation = useUpdateMyProfile();
   }, [isOpen, handleTouchEnd]);
 
   const handleSave = async () => {
-  // 1. Prepare user payload (first_name, last_name, profilePicture)
+  // 1. Prepare user payload (first_name, last_name, profile_picture)
   const userPayload: UpdateProfileFormData = {
     first_name: first_name || '',
     last_name: last_name || '',
-    profilePicture: profileImage ?? null,
+    profile_picture: profileImage ?? null,
   };
 
   // 2. Prepare profile payload

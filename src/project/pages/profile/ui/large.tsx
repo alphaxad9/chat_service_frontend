@@ -8,7 +8,7 @@ import { useAuth } from '../../../../apis/user/authentication/AuthContext';
 function LargeProfile() {
   const { myProfile} = useAuth();
 
-
+  
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -31,7 +31,7 @@ function LargeProfile() {
     username: '',
     first_name: null,
     last_name: null,
-    profilePicture: null,
+    profile_picture: null,
   }}
 />
 
@@ -63,7 +63,7 @@ function LargeProfile() {
     phone: myProfile?.phone ?? null,
     first_name: myProfile?.user.first_name ?? null,   
     last_name: myProfile?.user.last_name ?? null,
-    profileImage: myProfile?.user.profilePicture ?? null,
+    profileImage: myProfile?.user.profile_picture ?? null,
     coverImage: myProfile?.cover_image ?? null,
   }}
 />

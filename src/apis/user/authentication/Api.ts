@@ -81,7 +81,7 @@ export const getProfile = async (): Promise<UserProfile> => {
       username: user.username,
       first_name: user.first_name,
       last_name: user.last_name,
-      profilePicture: user.profile_picture,
+      profile_picture: user.profile_picture,
     };
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -101,7 +101,7 @@ export const updateProfile = async (data: UpdateProfileFormData): Promise<UserPr
     const payload = {
       first_name: data.first_name,
       last_name: data.last_name,
-      profile_picture: data.profilePicture,
+      profile_picture: data.profile_picture,
     };
 
     const response = await client.patch<UserProfile>('/users/profile/update/', payload, {

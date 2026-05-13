@@ -14,7 +14,7 @@ export interface RegisterFormData {
 export interface UpdateProfileFormData {
   first_name: string;
   last_name: string;
-  profilePicture: File | string | null; // ✅ Accept File for upload
+  profile_picture: File | string | null; // ✅ Accept File for upload
 }
 
 // ✅ Response type (what you get from API)
@@ -24,7 +24,7 @@ export interface UserProfile {
   username: string;
   first_name: string;
   last_name: string;
-  profilePicture: string | null; // Always a URL in response
+  profile_picture: string | null; // Always a URL in response
 }
 
 
@@ -34,7 +34,7 @@ export interface ProfileUserDTO {
   username: string;
   first_name: string | null;
   last_name: string | null;
-  profilePicture: string | null;
+  profile_picture: string | null;
 }
 
 

@@ -89,7 +89,7 @@ const FillLargeScreen = () => {
         // ✅ Fix: use snake_case from ProfileUserDTO
         first_name: profile?.first_name ?? '',
         last_name: profile?.last_name ?? '',
-        profileImage: profile?.profilePicture ?? null,
+        profileImage: profile?.profile_picture ?? null,
 
         // UI state
         dateOfBirth: dobParts,
@@ -101,7 +101,7 @@ const FillLargeScreen = () => {
           : null,
       }));
     }
-  }, [myProfile, isProfileLoading, isMyProfileLoading, profile?.first_name, profile?.last_name, profile?.profilePicture]);
+  }, [myProfile, isProfileLoading, isMyProfileLoading, profile?.first_name, profile?.last_name, profile?.profile_picture]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -139,7 +139,7 @@ const FillLargeScreen = () => {
   const userPayload: UpdateProfileFormData = {
     first_name: formState.first_name,
     last_name: formState.last_name,
-    profilePicture: formState.profileImage ?? '',
+    profile_picture: formState.profileImage ?? '',
   };
 
   const profilePayload: UpdateProfileRequest = {
