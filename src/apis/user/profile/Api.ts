@@ -1,18 +1,16 @@
+// src/api/profile.ts
 import { AxiosError } from 'axios';
 import {
   MyUserProfileDTO,
   ForeignUserProfileDTO,
   UpdateProfileRequest,
 } from './types';
-import { getCsrfToken } from '../authentication/Api';
 import { client } from '../../client';
+
 // 1. Get your own profile
 export const getMyProfile = async (): Promise<MyUserProfileDTO> => {
   try {
-    const csrfToken = await getCsrfToken();
-    const response = await client.get<MyUserProfileDTO>('/profile/', {
-      headers: { 'X-CSRFToken': csrfToken },
-    });
+    const response = await client.get<MyUserProfileDTO>('/users/profile/');
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -28,12 +26,8 @@ export const getForeignProfile = async (userId: string): Promise<ForeignUserProf
     throw new Error('User ID is required');
   }
   try {
-    const csrfToken = await getCsrfToken();
     const response = await client.get<ForeignUserProfileDTO>(
-      `/profile/${userId}/`,
-      {
-        headers: { 'X-CSRFToken': csrfToken },
-      }
+      `/users/users/${userId}/`,
     );
     return response.data;
   } catch (error) {
@@ -47,13 +41,9 @@ export const getForeignProfile = async (userId: string): Promise<ForeignUserProf
 // 3. Update your own profile
 export const updateMyProfile = async (data: UpdateProfileRequest): Promise<MyUserProfileDTO> => {
   try {
-    const csrfToken = await getCsrfToken();
     const response = await client.patch<MyUserProfileDTO>(
-      '/profile/',
+      '/users/profile/update/',
       data,
-      {
-        headers: { 'X-CSRFToken': csrfToken },
-      }
     );
     return response.data;
   } catch (error) {
@@ -67,13 +57,9 @@ export const updateMyProfile = async (data: UpdateProfileRequest): Promise<MyUse
 // 4. Clear unread notifications
 export const clearUnreadNotifications = async (): Promise<void> => {
   try {
-    const csrfToken = await getCsrfToken();
     await client.post(
-      '/profile/clear-notifications/',
+      '/users/profile/clear-notifications/',
       {},
-      {
-        headers: { 'X-CSRFToken': csrfToken },
-      }
     );
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -87,12 +73,8 @@ export const clearUnreadNotifications = async (): Promise<void> => {
 export const getTopPublicProfiles = async (limit: number = 10): Promise<ForeignUserProfileDTO[]> => {
   const safeLimit = Math.min(Math.max(limit, 1), 50);
   try {
-    const csrfToken = await getCsrfToken();
     const response = await client.get<{ results: ForeignUserProfileDTO[] }>(
-      `/profile/top/?limit=${safeLimit}`,
-      {
-        headers: { 'X-CSRFToken': csrfToken },
-      }
+      `/users/profile/top/?limit=${safeLimit}`,
     );
     return response.data.results;
   } catch (error) {
@@ -109,13 +91,10 @@ export const getAllPublicProfiles = async (
   offset: number = 0
 ): Promise<{ results: ForeignUserProfileDTO[]; count: number }> => {
   try {
-    const csrfToken = await getCsrfToken();
     const response = await client.get<{
       results: ForeignUserProfileDTO[];
       count: number;
-    }>(`/profile/all/?limit=${limit}&offset=${offset}`, {
-      headers: { 'X-CSRFToken': csrfToken },
-    });
+    }>(`/users/profile/all/?limit=${limit}&offset=${offset}`);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
