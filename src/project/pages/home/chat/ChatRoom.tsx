@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+// src/project/pages/chat/ChatRoom.tsx
 import { MyRoomsHomePageListDto } from "../../../../apis/chat/rooms/types";
-import { format } from 'date-fns';
 import { ArrowLeft, Users, User } from "lucide-react";
+import MessageArea from "./messages/MessageArea";
 const ChatRoom = ({ 
     room, 
     darkmode, 
@@ -11,39 +11,6 @@ const ChatRoom = ({
     darkmode: boolean; 
     onBack: () => void;
 }) => {
-    const [messages, setMessages] = useState<any[]>([]);
-    const [newMessage, setNewMessage] = useState('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    // Scroll to bottom when messages change
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    const handleSendMessage = async () => {
-        if (!newMessage.trim()) return;
-        
-        // Add optimistic message
-        const optimisticMessage = {
-            id: Date.now().toString(),
-            content: newMessage,
-            is_mine: true,
-            created_at: new Date().toISOString(),
-        };
-        
-        setMessages(prev => [...prev, optimisticMessage]);
-        setNewMessage('');
-        
-        try {
-            // Send message to your API
-            // await sendMessage(room?.room_id, newMessage);
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            // Remove optimistic message on error
-            setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-        }
-    };
-
     if (!room) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -102,70 +69,9 @@ const ChatRoom = ({
                     </div>
                 </div>
             </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 && (
-                    <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
-                        No messages yet. Start the conversation!
-                    </div>
-                )}
-                {messages.map((message) => (
-                    <div
-                        key={message.id}
-                        className={`flex ${message.is_mine ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div
-                            className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                                message.is_mine
-                                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                                    : darkmode
-                                    ? 'bg-gray-800 text-gray-100'
-                                    : 'bg-gray-100 text-gray-900'
-                            }`}
-                        >
-                            <p className="break-words">{message.content}</p>
-                            <span className="text-xs opacity-70 mt-1 block">
-                                {format(new Date(message.created_at), 'HH:mm')}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-inherit">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder="Type a message..."
-                        className={`
-                            flex-1 px-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-purple-500
-                            ${darkmode 
-                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
-                                : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
-                            }
-                        `}
-                    />
-                    <button
-                        onClick={handleSendMessage}
-                        disabled={!newMessage.trim()}
-                        className={`
-                            px-6 py-2 rounded-full font-semibold transition-all duration-300
-                            ${newMessage.trim()
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg'
-                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                            }
-                        `}
-                    >
-                        Send
-                    </button>
-                </div>
-            </div>
+            
+            {/* Message Area - Pass roomId */}
+            <MessageArea darkmode={darkmode} roomId={room.room_id} />
         </div>
     );
 };
