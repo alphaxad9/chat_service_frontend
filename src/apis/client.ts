@@ -103,6 +103,12 @@ chatClient.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    
+    // ✅ VERY IMPORTANT for multipart uploads - let browser generate boundary
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+    
     // Chat microservice does not require CSRF tokens
     return config;
   },

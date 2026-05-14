@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import { useMessagesByRoomId } from '../../../../../apis/chat/messages/hooks';
 import { MessageQueryResponseDTO, getMessageDisplayText } from '../../../../../apis/chat/messages/types';
 import MessageInput from './MessageInput';
+import "../../feed.css"
 
 interface MessageAreaProps {
     darkmode: boolean;
@@ -79,10 +80,10 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            {/* Messages Area - Takes available space and scrolls */}
+            {/* Messages Area - Takes available space and scrolls with custom scrollbar */}
             <div 
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-3"
+                className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"
                 style={{ minHeight: 0 }} // Important for Firefox
             >
                 {activeMessages.length === 0 && (

@@ -17,7 +17,7 @@ ChatRoomItem.displayName = 'ChatRoomItem';
 
 const Feed = () => {
     const darkmode = useSelector((state: RootState) => state.theme.isDark);
-    const { data: rooms, isLoading, error } = useRoomsForHomePage();
+    const { data: rooms, isLoading, error, refetch: refetchRooms } = useRoomsForHomePage();
     const navigate = useNavigate();
     const { roomId: currentRoomId } = useParams();
     const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -26,7 +26,13 @@ const Feed = () => {
     
     // Memoized room list to prevent unnecessary re-renders
     const roomList = useMemo(() => rooms || [], [rooms]);
-    const { data: availableUsers, isLoading: isLoadingUsers } = useUsersForNewConversation({ limit: 50 });
+    const { data: availableUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useUsersForNewConversation({ limit: 50 });
+    
+    // Refetch data on every mount
+    useEffect(() => {
+        refetchRooms();
+        refetchUsers();
+    }, [refetchRooms, refetchUsers]);
     
     // Find the current room from the room list
     const currentRoom = useMemo(() => {
@@ -221,12 +227,10 @@ const Feed = () => {
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full w-full">
-                                <div className="text-center">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-                                    <p className="text-gray-500 dark:text-gray-400">
-                                        Loading conversation...
-                                    </p>
-                                </div>
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    Loading conversation...
+                                </p>
                             </div>
                         )
                     ) : (

@@ -1,8 +1,7 @@
-// src/project/pages/chat/components/MessageInput.tsx
 import { useState, useRef, useEffect } from 'react';
-import { Image, X, Smile } from 'lucide-react';
+import { Image, X, Smile, AlertCircle } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-import { useSendMessage } from '../../../../../apis/chat/messages/hooks';
+import { useSendMessage, useSendMessageWithImage } from '../../../../../apis/chat/messages/hooks';
 import { SendMessageRequest } from '../../../../../apis/chat/messages/types';
 
 interface MessageInputProps {
@@ -16,12 +15,16 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [showImageContentHint, setShowImageContentHint] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     
-    // Send message mutation
-    const { mutate: sendMessage, isPending: isSending } = useSendMessage(roomId || undefined);
+    // Send message mutations - using mutateAsync for proper await support
+    const { mutateAsync: sendMessage, isPending: isSendingText } = useSendMessage(roomId || undefined);
+    const { mutateAsync: sendMessageWithImage, isPending: isSendingImage } = useSendMessageWithImage(roomId || undefined);
+    
+    const isSending = isSendingText || isSendingImage;
     
     // Close emoji picker when clicking outside
     useEffect(() => {
@@ -35,19 +38,25 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     
+    // Auto-hide image content hint after 3 seconds
+    useEffect(() => {
+        if (showImageContentHint) {
+            const timer = setTimeout(() => setShowImageContentHint(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [showImageContentHint]);
+    
     // Handle image selection
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             // Validate file type
             if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
                 return;
             }
             
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                alert('Image size should be less than 5MB');
                 return;
             }
             
@@ -64,6 +73,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         }
         setSelectedImage(null);
         setImagePreview(null);
+        setShowImageContentHint(false);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -76,6 +86,17 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         inputRef.current?.focus();
     };
     
+    // Build FormData for image message
+    const buildImageFormData = (): FormData => {
+        const formData = new FormData();
+        formData.append('room_id', roomId!);
+        if (newMessage.trim()) {
+            formData.append('content', newMessage.trim());
+        }
+        formData.append('image', selectedImage!);
+        return formData;
+    };
+    
     // Handle send message
     const handleSendMessage = async () => {
         if (!roomId) return;
@@ -83,24 +104,23 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         // Don't send if no content and no image
         if ((!newMessage.trim() && !selectedImage)) return;
         
+        // If image selected but no text content, show hint and return
+        if (selectedImage && !newMessage.trim()) {
+            setShowImageContentHint(true);
+            return;
+        }
+        
         try {
             if (selectedImage) {
-                // TODO: Implement image sending when you have the API endpoint
-                console.log('Image sending not implemented yet');
-                // const formData = new FormData();
-                // formData.append('room_id', roomId);
-                // formData.append('image', selectedImage);
-                // if (newMessage.trim()) {
-                //     formData.append('content', newMessage);
-                // }
-                // await sendMessageWithImage(formData);
+                // Send message with image - pass FormData directly
+                const formData = buildImageFormData();
+                await sendMessageWithImage(formData);
             } else if (newMessage.trim()) {
                 // Send text message
                 const request: SendMessageRequest = {
                     room_id: roomId,
                     content: newMessage.trim()
                 };
-                
                 await sendMessage(request);
             }
             
@@ -114,7 +134,6 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
             }
         } catch (error) {
             console.error('Failed to send message:', error);
-            alert('Failed to send message. Please try again.');
         }
     };
     
@@ -126,7 +145,10 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         }
     };
     
-    const canSend = (newMessage.trim() || selectedImage) && !isSending;
+    // Can send if: has text content, OR has text + image
+    // Cannot send if: image only without text, or nothing at all
+    const canSend = newMessage.trim().length > 0 && !isSending;
+    const isImageOnly = selectedImage && !newMessage.trim();
     
     return (
         <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-inherit">
@@ -149,7 +171,19 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                 </div>
             )}
             
-            {/* ✅ Added z-40 to ensure this container is above sidebar */}
+            {/* Image-only hint tooltip */}
+            {showImageContentHint && (
+                <div className={`
+                    mb-2 px-3 py-2 rounded-lg text-sm flex items-center gap-2
+                    ${darkmode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-800'}
+                    animate-pulse
+                `}>
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Please add a message to send with your image</span>
+                </div>
+            )}
+            
+            {/* Input container */}
             <div className="flex gap-2 relative z-40">
                 {/* Image Upload Button */}
                 <input
@@ -175,7 +209,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                     <Image className="w-5 h-5" />
                 </button>
                 
-                {/* ✅ Emoji Picker Container - Increased z-index */}
+                {/* Emoji Picker Container */}
                 <div className="relative z-[100]" ref={emojiPickerRef}>
                     <button
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -194,7 +228,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                         <Smile className="w-5 h-5" />
                     </button>
                     
-                    {/* ✅ Emoji Picker - Increased z-index and adjusted positioning */}
+                    {/* Emoji Picker */}
                     {showEmojiPicker && (
                         <div className="absolute bottom-full mb-2 left-0 z-[100]">
                             <EmojiPicker
@@ -216,7 +250,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={selectedImage ? "Add caption (optional)..." : "Type a message..."}
+                    placeholder={selectedImage ? "Add a message to send with your image..." : "Type a message..."}
                     disabled={isSending}
                     className={`
                         flex-1 px-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all
@@ -225,6 +259,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                             : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
                         }
                         ${isSending ? 'opacity-70 cursor-not-allowed' : ''}
+                        ${isImageOnly ? 'ring-2 ring-yellow-500/50' : ''}
                     `}
                 />
                 
@@ -233,12 +268,13 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                     onClick={handleSendMessage}
                     disabled={!canSend}
                     className={`
-                        px-6 py-2 rounded-full font-semibold transition-all duration-300 flex-shrink-0
+                        px-6 py-2 rounded-full font-semibold transition-all duration-300 flex-shrink-0 relative
                         ${canSend && !isSending
                             ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg transform hover:scale-105'
                             : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                         }
                     `}
+                    title={isImageOnly ? "Add a message to send with your image" : undefined}
                 >
                     {isSending ? (
                         <div className="flex items-center gap-2">
@@ -247,6 +283,19 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                         </div>
                     ) : (
                         'Send'
+                    )}
+                    
+                    {/* Disabled state tooltip for image-only */}
+                    {isImageOnly && (
+                        <div className={`
+                            absolute bottom-full right-0 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap
+                            ${darkmode ? 'bg-gray-900 text-gray-200' : 'bg-gray-800 text-white'}
+                            opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none
+                            before:content-[''] before:absolute before:bottom-[-4px] before:right-4 
+                            before:w-2 before:h-2 before:bg-inherit before:rotate-45
+                        `}>
+                            Add a message to send
+                        </div>
                     )}
                 </button>
             </div>

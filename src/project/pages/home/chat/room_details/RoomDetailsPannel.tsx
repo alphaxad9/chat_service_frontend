@@ -2,6 +2,7 @@
 import { useRoomById, useDeleteGroupRoom } from "../../../../../apis/chat/rooms/hooks";
 import { useActiveRoomMembersQuery } from "../../../../../apis/chat/members/hooks";
 import { MemberQueryResponseDTO } from "../../../../../apis/chat/members/types";
+import "../../feed.css"
 import { 
     Calendar, 
     Clock, 
@@ -104,6 +105,7 @@ export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }:
                     ${darkmode ? 'bg-dark' : 'bg-white'} 
                     shadow-2xl z-50 transform transition-transform duration-300 ease-in-out
                     overflow-y-auto border-l ${darkmode ? 'border-gray-800' : 'border-gray-200'}
+                    custom-scrollbar
                 `}
             >
                 {/* Panel Header */}
