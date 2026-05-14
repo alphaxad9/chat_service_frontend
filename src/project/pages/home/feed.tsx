@@ -1,24 +1,23 @@
-// src/project/pages/home/feed.tsx
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useMemo, useState } from 'react';
+import ListUsersForNewChat from "./components/ListUsersForNewChat";
 import { User, MessageCircle, ArrowLeft, Plus, Search, X } from "lucide-react";
 import { useSelector } from 'react-redux';
 import { RootState } from '../../entities/store';
-import { useRoomsForHomePage, useUsersForNewConversation } from "../../../apis/chat/rooms/hooks";
-import { useCreateDirectRoom } from "../../../apis/chat/rooms/hooks";
+import { useRoomsForHomePage } from "../../../apis/chat/rooms/hooks";
+import { useUsersForNewConversation } from "../../../apis/chat/rooms/hooks";
 import LoadingRooms from "./components/loading_rooms";
 import EmptyRoomsList from "./components/empty_room_list";
 import LoadingRoomError from "./components/loading_rooms_error";
 import ChatRoomItem from "./chat/ChatRoomItem";
 import ChatRoom from "./chat/ChatRoom";
 import './feed.css'; 
+
 ChatRoomItem.displayName = 'ChatRoomItem';
 
 const Feed = () => {
     const darkmode = useSelector((state: RootState) => state.theme.isDark);
     const { data: rooms, isLoading, error } = useRoomsForHomePage();
-    const { data: availableUsers, isLoading: isLoadingUsers } = useUsersForNewConversation({ limit: 50 });
-    const createDirectRoom = useCreateDirectRoom();
     const navigate = useNavigate();
     const { roomId: currentRoomId } = useParams();
     const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -27,20 +26,7 @@ const Feed = () => {
     
     // Memoized room list to prevent unnecessary re-renders
     const roomList = useMemo(() => rooms || [], [rooms]);
-    
-    // Filter users based on search query
-    const filteredUsers = useMemo(() => {
-        if (!availableUsers) return [];
-        if (!searchQuery.trim()) return availableUsers;
-        
-        const query = searchQuery.toLowerCase();
-        return availableUsers.filter(user => 
-            user.username.toLowerCase().includes(query) ||
-            (user.first_name && user.first_name.toLowerCase().includes(query)) ||
-            (user.last_name && user.last_name.toLowerCase().includes(query)) ||
-            `${user.first_name} ${user.last_name}`.toLowerCase().includes(query)
-        );
-    }, [availableUsers, searchQuery]);
+    const { data: availableUsers, isLoading: isLoadingUsers } = useUsersForNewConversation({ limit: 50 });
     
     // Find the current room from the room list
     const currentRoom = useMemo(() => {
@@ -59,30 +45,19 @@ const Feed = () => {
         navigate('/');
         setShowNewChat(false);
     };
-
-    // Handle creating a new direct chat
-    const handleCreateDirectChat = async (friendId: string) => {
-        try {
-            const result = await createDirectRoom.mutateAsync({ friend_id: friendId });
-            if (result.room_id) {
-                navigate(`/chat/${result.room_id}`);
-                setShowNewChat(false);
-            }
-        } catch (error) {
-            console.error("Failed to create direct chat:", error);
-        }
-    };
-
-    // Get user display name
-    const getUserDisplayName = (user: any) => {
-        if (user.first_name && user.last_name) {
-            return `${user.first_name} ${user.last_name}`;
-        }
-        if (user.first_name) {
-            return user.first_name;
-        }
-        return user.username;
-    };
+    
+    const filteredUsers = useMemo(() => {
+        if (!availableUsers) return [];
+        if (!searchQuery.trim()) return availableUsers;
+        
+        const query = searchQuery.toLowerCase();
+        return availableUsers.filter(user => 
+            user.username.toLowerCase().includes(query) ||
+            (user.first_name && user.first_name.toLowerCase().includes(query)) ||
+            (user.last_name && user.last_name.toLowerCase().includes(query)) ||
+            `${user.first_name} ${user.last_name}`.toLowerCase().includes(query)
+        );
+    }, [availableUsers, searchQuery]);
 
     // Scroll to top when room changes (for mobile)
     useEffect(() => {
@@ -209,67 +184,11 @@ const Feed = () => {
                                         </p>
                                     </div>
                                 ) : (
-                                    <>
-                                        <div className={`px-4 py-2 text-xs font-semibold ${darkmode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
-                                            Available Users ({filteredUsers.length})
-                                        </div>
-                                        {filteredUsers.map((user) => (
-                                            <button
-                                                key={user.user_id}
-                                                onClick={() => handleCreateDirectChat(user.user_id)}
-                                                disabled={createDirectRoom.isPending}
-                                                className={`
-                                                    w-full flex items-center gap-3 p-3 transition-all duration-200
-                                                    ${darkmode 
-                                                        ? 'hover:bg-gray-800/50 active:bg-gray-800' 
-                                                        : 'hover:bg-gray-50 active:bg-gray-100'
-                                                    }
-                                                    border-b border-gray-100 dark:border-gray-800
-                                                `}
-                                            >
-                                                {/* User Avatar */}
-                                                <div className="relative">
-                                                    {user.profile_picture ? (
-                                                        <img
-                                                            src={user.profile_picture}
-                                                            alt={getUserDisplayName(user)}
-                                                            className="w-12 h-12 rounded-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className={`
-                                                            w-12 h-12 rounded-full flex items-center justify-center
-                                                            bg-gradient-to-br from-blue-500 to-cyan-500
-                                                        `}>
-                                                            <span className="text-white text-lg font-medium">
-                                                                {getUserDisplayName(user).charAt(0).toUpperCase()}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Online indicator */}
-                                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
-                                                </div>
-                                                
-                                                {/* User Info */}
-                                                <div className="flex-1 text-left">
-                                                    <p className={`font-semibold ${darkmode ? 'text-white' : 'text-gray-900'}`}>
-                                                        {getUserDisplayName(user)}
-                                                    </p>
-                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                        @{user.username}
-                                                    </p>
-                                                </div>
-                                                
-                                                {/* Start Chat Button */}
-                                                <div className={`
-                                                    p-2 rounded-full
-                                                    ${darkmode ? 'bg-gray-800' : 'bg-gray-100'}
-                                                `}>
-                                                    <MessageCircle className="w-5 h-5 text-purple-500" />
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </>
+                                    <ListUsersForNewChat 
+                                        filteredUsers={filteredUsers}
+                                        darkmode={darkmode}
+                                        onClose={() => setShowNewChat(false)}
+                                    />
                                 )}
                             </div>
                         )}
@@ -294,11 +213,22 @@ const Feed = () => {
                     ${!currentRoomId ? 'hidden md:flex items-center justify-center' : 'flex'}
                 `}>
                     {currentRoomId ? (
-                        <ChatRoom 
-                            room={currentRoom} 
-                            darkmode={darkmode} 
-                            onBack={handleBackToHome} 
-                        />
+                        currentRoom ? (
+                            <ChatRoom 
+                                room={currentRoom} 
+                                darkmode={darkmode} 
+                                onBack={handleBackToHome} 
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full w-full">
+                                <div className="text-center">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                                    <p className="text-gray-500 dark:text-gray-400">
+                                        Loading conversation...
+                                    </p>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         <div className="text-center max-w-md mx-auto px-4">
                             <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:bg-purple-900/20 dark:bg-pink-900/20 rounded-full p-6 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
