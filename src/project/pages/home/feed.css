@@ -1,0 +1,66 @@
+/* src/project/pages/home/feed.css - Matches your app's dark theme */
+
+/* Custom scrollbar for webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+/* Light mode */
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Dark mode - Using your app's dark colors (based on bg-dark class) */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: #1a1a1a;  /* Matches typical dark background */
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3f3f46;  /* Zinc-700 - subtle dark gray */
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #52525b;  /* Zinc-600 - slightly lighter on hover */
+}
+
+/* Optional: For ultra-dark themes (like pure black backgrounds) */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: #000000;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #27272a;  /* Zinc-800 */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;  /* Zinc-700 */
+}
+
+/* For Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #4d5054 #0a0f16;
+}
+
+.dark .custom-scrollbar {
+    scrollbar-color: #53535c #1a1a1a;
+}
+
+/* Smooth scrolling */
+.custom-scrollbar {
+    scroll-behavior: smooth;
+}

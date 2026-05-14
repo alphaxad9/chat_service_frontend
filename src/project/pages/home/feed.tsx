@@ -1,27 +1,46 @@
 // src/project/pages/home/feed.tsx
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useRef, useMemo } from 'react';
-import { User, MessageCircle, ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useMemo, useState } from 'react';
+import { User, MessageCircle, ArrowLeft, Plus, Search, X } from "lucide-react";
 import { useSelector } from 'react-redux';
 import { RootState } from '../../entities/store';
-import { useRoomsForHomePage } from "../../../apis/chat/rooms/hooks";
-
+import { useRoomsForHomePage, useUsersForNewConversation } from "../../../apis/chat/rooms/hooks";
+import { useCreateDirectRoom } from "../../../apis/chat/rooms/hooks";
 import LoadingRooms from "./components/loading_rooms";
 import EmptyRoomsList from "./components/empty_room_list";
 import LoadingRoomError from "./components/loading_rooms_error";
 import ChatRoomItem from "./chat/ChatRoomItem";
 import ChatRoom from "./chat/ChatRoom";
-
+import './feed.css'; 
 ChatRoomItem.displayName = 'ChatRoomItem';
 
 const Feed = () => {
     const darkmode = useSelector((state: RootState) => state.theme.isDark);
     const { data: rooms, isLoading, error } = useRoomsForHomePage();
+    const { data: availableUsers, isLoading: isLoadingUsers } = useUsersForNewConversation({ limit: 50 });
+    const createDirectRoom = useCreateDirectRoom();
     const navigate = useNavigate();
     const { roomId: currentRoomId } = useParams();
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const [showNewChat, setShowNewChat] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    
     // Memoized room list to prevent unnecessary re-renders
     const roomList = useMemo(() => rooms || [], [rooms]);
+    
+    // Filter users based on search query
+    const filteredUsers = useMemo(() => {
+        if (!availableUsers) return [];
+        if (!searchQuery.trim()) return availableUsers;
+        
+        const query = searchQuery.toLowerCase();
+        return availableUsers.filter(user => 
+            user.username.toLowerCase().includes(query) ||
+            (user.first_name && user.first_name.toLowerCase().includes(query)) ||
+            (user.last_name && user.last_name.toLowerCase().includes(query)) ||
+            `${user.first_name} ${user.last_name}`.toLowerCase().includes(query)
+        );
+    }, [availableUsers, searchQuery]);
     
     // Find the current room from the room list
     const currentRoom = useMemo(() => {
@@ -32,11 +51,37 @@ const Feed = () => {
     // Handle room click - navigate to /chat/:roomId
     const handleRoomClick = (roomId: string) => {
         navigate(`/chat/${roomId}`);
+        setShowNewChat(false);
     };
 
     // Handle back to home
     const handleBackToHome = () => {
         navigate('/');
+        setShowNewChat(false);
+    };
+
+    // Handle creating a new direct chat
+    const handleCreateDirectChat = async (friendId: string) => {
+        try {
+            const result = await createDirectRoom.mutateAsync({ friend_id: friendId });
+            if (result.room_id) {
+                navigate(`/chat/${result.room_id}`);
+                setShowNewChat(false);
+            }
+        } catch (error) {
+            console.error("Failed to create direct chat:", error);
+        }
+    };
+
+    // Get user display name
+    const getUserDisplayName = (user: any) => {
+        if (user.first_name && user.last_name) {
+            return `${user.first_name} ${user.last_name}`;
+        }
+        if (user.first_name) {
+            return user.first_name;
+        }
+        return user.username;
     };
 
     // Scroll to top when room changes (for mobile)
@@ -55,51 +100,183 @@ const Feed = () => {
     if (error) {
         return <LoadingRoomError />;
     }
-    
-    // Empty state
-    if (roomList.length === 0) {
-        return <EmptyRoomsList />;
-    }
 
     return (
         <div className={`${darkmode ? 'bg-dark text-light' : 'bg-light text-dark'} min-w-screen min-h-screen relative flex`}>
-            {/* Two Column Layout */}
             <div className="flex w-full">
-                {/* Left Sidebar - Rooms List (visible on desktop, hidden on mobile when chat is open) */}
+                {/* Left Sidebar - Rooms List */}
                 <div className={`
                     ${currentRoomId 
                         ? 'hidden md:block md:w-80 lg:w-96' 
                         : 'block w-full md:w-80 lg:w-96'
                     }
                     border-r border-gray-200 dark:border-gray-800 h-screen overflow-y-auto relative
+                    custom-scrollbar
                 `}>
-                    {/* Sticky Header with solid background - no transparency */}
+                    {/* Sticky Header */}
                     <div className={`
                         sticky top-0 z-10 p-4 border-b border-gray-200 dark:border-gray-800
                         ${darkmode ? 'bg-dark' : 'bg-light'}
                     `}>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                            Chats
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {roomList.length} conversation{roomList.length !== 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                Chats
+                            </h1>
+                            
+                            {/* New Chat Button */}
+                            <button
+                                onClick={() => setShowNewChat(!showNewChat)}
+                                className={`
+                                    p-2 rounded-full transition-all duration-300
+                                    ${showNewChat 
+                                        ? 'bg-red-500 hover:bg-red-600 rotate-90' 
+                                        : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                                    }
+                                    text-white shadow-lg hover:scale-105
+                                `}
+                            >
+                                {showNewChat ? (
+                                    <X className="w-5 h-5" />
+                                ) : (
+                                    <Plus className="w-5 h-5" />
+                                )}
+                            </button>
+                        </div>
+                        
+                        {!showNewChat ? (
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                {roomList.length} conversation{roomList.length !== 1 ? 's' : ''}
+                            </p>
+                        ) : (
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search users..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className={`
+                                        w-full pl-9 pr-4 py-2 rounded-lg text-sm
+                                        ${darkmode 
+                                            ? 'bg-gray-800 text-white placeholder-gray-500 border-gray-700' 
+                                            : 'bg-gray-100 text-gray-900 placeholder-gray-400 border-gray-200'
+                                        }
+                                        border focus:outline-none focus:ring-2 focus:ring-purple-500
+                                        transition-all duration-200
+                                    `}
+                                    autoFocus
+                                />
+                            </div>
+                        )}
                     </div>
                     
-                    <div className="space-y-1 pb-20">
-                        {roomList.map((room) => (
-                            <ChatRoomItem 
-                                key={room.room_id} 
-                                room={room} 
-                                isActive={currentRoomId === room.room_id}
-                                darkmode={darkmode}
-                                onClick={handleRoomClick}
-                            />
-                        ))}
+                    {/* Content Area */}
+                    <div className="pb-20">
+                        {!showNewChat ? (
+                            /* Rooms List */
+                            <div className="space-y-1">
+                                {roomList.length === 0 ? (
+                                    <EmptyRoomsList />
+                                ) : (
+                                    roomList.map((room) => (
+                                        <ChatRoomItem 
+                                            key={room.room_id} 
+                                            room={room} 
+                                            isActive={currentRoomId === room.room_id}
+                                            darkmode={darkmode}
+                                            onClick={handleRoomClick}
+                                        />
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            /* Users List for New Chat */
+                            <div className="space-y-1">
+                                {isLoadingUsers ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                                    </div>
+                                ) : filteredUsers.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <div className={`
+                                            w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4
+                                            ${darkmode ? 'bg-gray-800' : 'bg-gray-100'}
+                                        `}>
+                                            <Search className="w-8 h-8 text-gray-400" />
+                                        </div>
+                                        <p className={`text-sm ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            {searchQuery ? 'No users found' : 'No users available'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={`px-4 py-2 text-xs font-semibold ${darkmode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
+                                            Available Users ({filteredUsers.length})
+                                        </div>
+                                        {filteredUsers.map((user) => (
+                                            <button
+                                                key={user.user_id}
+                                                onClick={() => handleCreateDirectChat(user.user_id)}
+                                                disabled={createDirectRoom.isPending}
+                                                className={`
+                                                    w-full flex items-center gap-3 p-3 transition-all duration-200
+                                                    ${darkmode 
+                                                        ? 'hover:bg-gray-800/50 active:bg-gray-800' 
+                                                        : 'hover:bg-gray-50 active:bg-gray-100'
+                                                    }
+                                                    border-b border-gray-100 dark:border-gray-800
+                                                `}
+                                            >
+                                                {/* User Avatar */}
+                                                <div className="relative">
+                                                    {user.profile_picture ? (
+                                                        <img
+                                                            src={user.profile_picture}
+                                                            alt={getUserDisplayName(user)}
+                                                            className="w-12 h-12 rounded-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className={`
+                                                            w-12 h-12 rounded-full flex items-center justify-center
+                                                            bg-gradient-to-br from-blue-500 to-cyan-500
+                                                        `}>
+                                                            <span className="text-white text-lg font-medium">
+                                                                {getUserDisplayName(user).charAt(0).toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Online indicator */}
+                                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                                                </div>
+                                                
+                                                {/* User Info */}
+                                                <div className="flex-1 text-left">
+                                                    <p className={`font-semibold ${darkmode ? 'text-white' : 'text-gray-900'}`}>
+                                                        {getUserDisplayName(user)}
+                                                    </p>
+                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                        @{user.username}
+                                                    </p>
+                                                </div>
+                                                
+                                                {/* Start Chat Button */}
+                                                <div className={`
+                                                    p-2 rounded-full
+                                                    ${darkmode ? 'bg-gray-800' : 'bg-gray-100'}
+                                                `}>
+                                                    <MessageCircle className="w-5 h-5 text-purple-500" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Profile Button - positioned at the bottom left with spacing */}
-                    <div className="sticky bottom-3 left-[120px] ml-7 z-20 pb-2 bg-inherit">
+                    {/* Profile Button */}
+                    <div className="sticky bottom-3 left-[120px] ml-7 z-20 pb-2">
                         <NavLink 
                             to="/profile" 
                             className="block"
@@ -111,7 +288,7 @@ const Feed = () => {
                     </div>
                 </div>
 
-                {/* Right Side - Chat Area (only visible when a room is selected) */}
+                {/* Right Side - Chat Area */}
                 <div className={`
                     flex-1 h-screen
                     ${!currentRoomId ? 'hidden md:flex items-center justify-center' : 'flex'}
@@ -124,19 +301,19 @@ const Feed = () => {
                         />
                     ) : (
                         <div className="text-center max-w-md mx-auto px-4">
-                            <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-full p-6 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+                            <div className="bg-gradient-to-br from-purple-100 to-pink-100 dark:bg-purple-900/20 dark:bg-pink-900/20 rounded-full p-6 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
                                 <MessageCircle className="w-16 h-16 text-purple-500" />
                             </div>
                             <h2 className="text-2xl font-bold mb-2">Select a conversation</h2>
                             <p className="text-gray-600 dark:text-gray-400">
-                                Choose a chat from the list to start messaging
+                                Choose a chat from the list or start a new conversation
                             </p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Mobile back button when chat is open */}
+            {/* Mobile back button */}
             {currentRoomId && (
                 <button
                     onClick={handleBackToHome}
