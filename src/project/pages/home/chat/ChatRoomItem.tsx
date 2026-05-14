@@ -91,14 +91,6 @@ const ChatRoomItem = memo(({
                         </div>
                     )}
                     
-                    {/* Unread badge - positioned at bottom right of avatar */}
-                    {room.my_unread_messages_in_room > 0 && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900 shadow-sm">
-                            <span className="text-white text-xs font-bold">
-                                {room.my_unread_messages_in_room > 9 ? '9+' : room.my_unread_messages_in_room}
-                            </span>
-                        </div>
-                    )}
                 </div>
 
                 {/* Room Info */}

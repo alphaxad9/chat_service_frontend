@@ -29,10 +29,10 @@ const Feed = () => {
     const { data: availableUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useUsersForNewConversation({ limit: 50 });
 
     // Refetch data on every mount
-    // useEffect(() => {
-    //     refetchRooms();
-    //     refetchUsers();
-    // }, [refetchRooms, refetchUsers]);
+    useEffect(() => {
+        refetchRooms();
+        refetchUsers();
+    }, [refetchRooms, refetchUsers]);
     
     // Find the current room from the room list
     const currentRoom = useMemo(() => {
