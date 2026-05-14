@@ -91,6 +91,7 @@ const SettingsModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
   } catch (error) {
     console.error('Logout failed:', error);
     // Optionally still redirect if backend clears cookies anyway
+    window.location.reload();
     navigate('/authentication');
   }
 };

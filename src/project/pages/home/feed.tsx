@@ -23,16 +23,16 @@ const Feed = () => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const [showNewChat, setShowNewChat] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    
+
     // Memoized room list to prevent unnecessary re-renders
     const roomList = useMemo(() => rooms || [], [rooms]);
     const { data: availableUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useUsersForNewConversation({ limit: 50 });
-    
+
     // Refetch data on every mount
-    useEffect(() => {
-        refetchRooms();
-        refetchUsers();
-    }, [refetchRooms, refetchUsers]);
+    // useEffect(() => {
+    //     refetchRooms();
+    //     refetchUsers();
+    // }, [refetchRooms, refetchUsers]);
     
     // Find the current room from the room list
     const currentRoom = useMemo(() => {

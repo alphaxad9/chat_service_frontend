@@ -36,12 +36,17 @@ import {
  * Fetch authenticated user's room list for home page display
  * GET /api/query/rooms/home
  */
+// src/apis/chat/rooms/hooks.tsx
 export const useRoomsForHomePage = (
   options?: Omit<UseQueryOptions<MyRoomsHomePageListDto[], Error>, 'queryKey' | 'queryFn'>
 ) => {
   return useQuery({
     queryKey: ['rooms', 'home'],
     queryFn: getRoomsForHomePage,
+    staleTime: 5 * 60 * 1000,        // 5 minutes — data stays fresh
+    gcTime: 10 * 60 * 1000,          // keep in cache longer
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,           // only refetch manually when you really need it
     ...options,
   });
 };

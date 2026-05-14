@@ -2,7 +2,7 @@ import { MessageCircle } from "lucide-react";
 import { useCreateDirectRoom } from "../../../../apis/chat/rooms/hooks";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-
+import { MyRoomsHomePageListDto } from "../../../../apis/chat/rooms/types";
 interface ListUsersForNewChatProps {
     filteredUsers: Array<{
         user_id: string;
@@ -22,54 +22,48 @@ const ListUsersForNewChat = ({ filteredUsers, darkmode, onClose }: ListUsersForN
     const queryClient = useQueryClient();
     
     // Handle creating a new direct chat with optimistic update
-    const handleCreateDirectChat = async (friendId: string) => {
-        try {
-            const result = await createDirectRoom.mutateAsync({ friend_id: friendId });
-            
-            if (result.room_id) {
-                // Get existing rooms from cache
-                const existingRooms = queryClient.getQueryData(['rooms', 'home']) as any[] || [];
-                
-                // Find the selected user
-                const selectedUser = filteredUsers.find(user => user.user_id === friendId);
-                
-                if (selectedUser) {
-                    // Create optimistic room object
-                    const optimisticRoom = {
-                        room_id: result.room_id,
-                        name: selectedUser.first_name 
-                            ? `${selectedUser.first_name} ${selectedUser.last_name}`.trim()
-                            : selectedUser.username,
-                        is_group: false,
-                        has_profile_image: !!selectedUser.profile_picture,
-                        profile_image_url: selectedUser.profile_picture,
-                        my_unread_messages_in_room: 0,
-                        last_activity_at: new Date().toISOString(),
-                        last_message: null,
-                        type: "DIRECT",
-                        is_admin: true,
-                        is_owner: true,
-                        created_at: new Date().toISOString(),
-                    };
-                    
-                    // Optimistically add to cache
-                    queryClient.setQueryData(
-                        ['rooms', 'home'],
-                        [optimisticRoom, ...existingRooms]
-                    );
-                }
-                
-                // Close panel and navigate
-                onClose();
-                navigate(`/chat/${result.room_id}`);
-                
-                // Background sync with server
-                await queryClient.invalidateQueries({ queryKey: ['rooms', 'home'] });
-            }
-        } catch (error) {
-            console.error("Failed to create direct chat:", error);
+// Handle creating a new direct chat with optimistic update
+const handleCreateDirectChat = async (friendId: string) => {
+    try {
+        const result = await createDirectRoom.mutateAsync({ friend_id: friendId });
+
+        if (result.room_id) {
+            const selectedUser = filteredUsers.find(user => user.user_id === friendId);
+            if (!selectedUser) return;
+
+            const optimisticRoom: MyRoomsHomePageListDto = {
+                room_id: result.room_id,
+                name: selectedUser.first_name 
+                    ? `${selectedUser.first_name} ${selectedUser.last_name}`.trim()
+                    : selectedUser.username,
+                is_group: false,
+                has_profile_image: !!selectedUser.profile_picture,
+                profile_image_url: selectedUser.profile_picture || null,
+                my_unread_messages_in_room: 0,
+                last_activity_at: new Date().toISOString(),
+                last_message: null,
+                is_deleted: false,
+                // Add any other fields your real MyRoomsHomePageListDto has
+                // (e.g. type, is_admin, is_owner, created_at, participants, etc.)
+            };
+
+            // Optimistic update - add to the top of the list
+            queryClient.setQueryData(['rooms', 'home'], (old: any[] = []) => [
+                optimisticRoom,
+                ...old,
+            ]);
+
+            // Close panel + navigate immediately
+            onClose();
+            navigate(`/chat/${result.room_id}`);
+
+            // DO NOT invalidate here → this is what was deleting the new room
+            // The room will stay until the first message is sent (which updates last_message)
         }
-    };
+    } catch (error) {
+        console.error("Failed to create direct chat:", error);
+    }
+};
     
     // Get user display name
     const getUserDisplayName = (user: any) => {
