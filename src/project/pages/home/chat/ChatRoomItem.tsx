@@ -1,20 +1,22 @@
 // src/project/pages/home/chat/ChatRoomItem.tsx
 import { memo } from 'react';
-import { User, Users, ChevronRight, Clock } from "lucide-react";
+import { Users, ChevronRight, Clock } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { MyRoomsHomePageListDto, getLastMessageDisplayText } from "../../../../apis/chat/rooms/types";
+import { Camera } from 'lucide-react';
+interface ChatRoomItemProps {
+    room: MyRoomsHomePageListDto;
+    isActive: boolean;
+    darkmode: boolean;
+    onClick: (roomId: string) => void;
+}
 
 const ChatRoomItem = memo(({ 
     room, 
     isActive, 
     darkmode, 
     onClick 
-}: { 
-    room: MyRoomsHomePageListDto; 
-    isActive: boolean; 
-    darkmode: boolean;
-    onClick: (roomId: string) => void;
-}) => {
+}: ChatRoomItemProps) => {
     const formatTime = (dateString: string | null | undefined) => {
         if (!dateString) return "";
         try {
@@ -24,7 +26,6 @@ const ChatRoomItem = memo(({
         }
     };
 
-    // Get the first letter of the room name for avatar
     const getFirstLetter = (name: string) => {
         return name.charAt(0).toUpperCase();
     };
@@ -58,7 +59,6 @@ const ChatRoomItem = memo(({
                             className="w-14 h-14 rounded-full object-cover"
                             onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
-                                // Fallback to letter avatar on error
                                 const parent = (e.target as HTMLImageElement).parentElement;
                                 if (parent) {
                                     const fallbackDiv = document.createElement('div');
@@ -90,7 +90,6 @@ const ChatRoomItem = memo(({
                             )}
                         </div>
                     )}
-                    
                 </div>
 
                 {/* Room Info */}
@@ -119,7 +118,7 @@ const ChatRoomItem = memo(({
                                         {getLastMessageDisplayText(room.last_message)}
                                     </p>
                                     {room.last_message.has_image && (
-                                        <span className="text-xs text-gray-500 flex-shrink-0">📷</span>
+                                        <Camera className="w-16 h-5 mx-auto" />
                                     )}
                                 </div>
                             ) : (
@@ -129,7 +128,7 @@ const ChatRoomItem = memo(({
                             )}
                         </div>
                         
-                        {/* Unread messages count - positioned on the right */}
+                        {/* Unread messages count */}
                         {room.my_unread_messages_in_room > 0 && (
                             <div className="flex-shrink-0 ml-2">
                                 <div className="min-w-[20px] h-5 bg-red-500 rounded-full flex items-center justify-center px-1.5">
@@ -152,5 +151,4 @@ const ChatRoomItem = memo(({
 });
 
 ChatRoomItem.displayName = 'ChatRoomItem';
-
 export default ChatRoomItem;

@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import { useMessagesByRoomId } from '../../../../../apis/chat/messages/hooks';
 import { MessageQueryResponseDTO, getMessageDisplayText } from '../../../../../apis/chat/messages/types';
 import MessageInput from './MessageInput';
+import { Camera } from 'lucide-react';
 import "../../feed.css"
 
 interface MessageAreaProps {
@@ -89,7 +90,7 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                 {activeMessages.length === 0 && (
                     <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                         <div className="text-center">
-                            <div className="text-6xl mb-4">💬</div>
+                            <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
                             <p className="text-lg font-medium mb-2">No messages yet</p>
                             <p className="text-sm">Start the conversation!</p>
                         </div>
@@ -156,7 +157,7 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                             ↪ Replying to {message.parent_preview.creator_username}
                                         </span>
                                         <div className="truncate max-w-[200px]">
-                                            {message.parent_preview.has_image ? '📷 Photo' : message.parent_preview.content}
+                                            {message.parent_preview.has_image ? `${<Camera className="w-16 h-5 mx-auto mb-4 " />} Photo` : message.parent_preview.content}
                                         </div>
                                     </div>
                                 )}
@@ -196,9 +197,7 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                     )}
                                     
                                     {/* Edited indicator */}
-                                    {message.updated_at && message.updated_at !== message.created_at && (
-                                        <span className="text-xs opacity-50 italic">(edited)</span>
-                                    )}
+                                    {message.updated_at && message.updated_at !== message.created_at}
                                 </div>
                             </div>
                         </div>

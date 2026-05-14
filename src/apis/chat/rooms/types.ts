@@ -366,7 +366,7 @@ export const isDirectRoom = (room: { is_group: boolean }): room is Extract<RoomR
 export const getLastMessageDisplayText = (lastMessage: LastMessagePreview | null): string => {
   if (!lastMessage) return "";
   if (lastMessage.has_image && lastMessage.image_url) {
-    return "📷 Photo";
+    return " Photo";
   }
   return lastMessage.content || "";
 };

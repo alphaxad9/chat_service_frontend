@@ -190,19 +190,19 @@ export const isDeletedMessage = (message: { is_deleted: boolean }): message is E
 export const getMessageDisplayText = (message: MessageResponseDTO): string => {
   if (message.is_deleted) return "💬 This message was deleted";
   if (message.has_image && message.image_url) {
-    return message.content ? `📷 ${message.content}` : "📷 Photo";
+    return message.content ? ` ${message.content}` : " Photo";
   }
   return message.content || "";
 };
 
 /**
  * Helper to get parent preview display text (for reply context rendering).
- * Follows image-over-text priority: shows "📷 Photo" if parent has image.
+ * Follows image-over-text priority: shows " Photo" if parent has image.
  */
 export const getParentPreviewDisplayText = (preview: ParentMessagePreview | null): string => {
   if (!preview) return "";
   if (preview.has_image && preview.image_url) {
-    return "📷 Photo";
+    return "Photo";
   }
   return preview.content || "";
 };

@@ -9,11 +9,10 @@ import { useUsersForNewConversation } from "../../../apis/chat/rooms/hooks";
 import LoadingRooms from "./components/loading_rooms";
 import EmptyRoomsList from "./components/empty_room_list";
 import LoadingRoomError from "./components/loading_rooms_error";
+// ⚠️ VERIFY: Ensure this path points to ChatRoomItem.tsx (NOT MessageInput.tsx)
 import ChatRoomItem from "./chat/ChatRoomItem";
 import ChatRoom from "./chat/ChatRoom";
 import './feed.css'; 
-
-ChatRoomItem.displayName = 'ChatRoomItem';
 
 const Feed = () => {
     const darkmode = useSelector((state: RootState) => state.theme.isDark);
@@ -24,29 +23,33 @@ const Feed = () => {
     const [showNewChat, setShowNewChat] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Memoized room list to prevent unnecessary re-renders
-    const roomList = useMemo(() => rooms || [], [rooms]);
+    // ✅ Memoized AND sorted room list - newest activity first
+    const roomList = useMemo(() => {
+        if (!rooms) return [];
+        return [...rooms].sort((a, b) => {
+            const dateA = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+            const dateB = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+            return dateB - dateA; // Descending: newest first
+        });
+    }, [rooms]);
+
     const { data: availableUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useUsersForNewConversation({ limit: 50 });
 
-    // Refetch data on every mount
     useEffect(() => {
         refetchRooms();
         refetchUsers();
     }, [refetchRooms, refetchUsers]);
     
-    // Find the current room from the room list
     const currentRoom = useMemo(() => {
         if (!currentRoomId) return null;
         return roomList.find(room => room.room_id === currentRoomId) || null;
     }, [currentRoomId, roomList]);
 
-    // Handle room click - navigate to /chat/:roomId
     const handleRoomClick = (roomId: string) => {
         navigate(`/chat/${roomId}`);
         setShowNewChat(false);
     };
 
-    // Handle back to home
     const handleBackToHome = () => {
         navigate('/');
         setShowNewChat(false);
@@ -65,19 +68,16 @@ const Feed = () => {
         );
     }, [availableUsers, searchQuery]);
 
-    // Scroll to top when room changes (for mobile)
     useEffect(() => {
         if (chatContainerRef.current && window.innerWidth < 768) {
             chatContainerRef.current.scrollTop = 0;
         }
     }, [currentRoomId]);
 
-    // Loading state
     if (isLoading) {
         return <LoadingRooms />;
     }
     
-    // Error state
     if (error) {
         return <LoadingRoomError />;
     }
@@ -154,7 +154,7 @@ const Feed = () => {
                     {/* Content Area */}
                     <div className="pb-20">
                         {!showNewChat ? (
-                            /* Rooms List */
+                            /* Rooms List - Now Always Sorted by Last Activity */
                             <div className="space-y-1">
                                 {roomList.length === 0 ? (
                                     <EmptyRoomsList />
