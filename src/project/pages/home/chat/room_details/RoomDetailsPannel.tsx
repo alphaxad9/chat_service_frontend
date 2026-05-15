@@ -1,7 +1,6 @@
 // src/project/pages/chat/room_details/RoomDetailsPannel.tsx
+import { useState } from "react";
 import { useRoomById, useDeleteGroupRoom } from "../../../../../apis/chat/rooms/hooks";
-import { useActiveRoomMembersQuery } from "../../../../../apis/chat/members/hooks";
-import { MemberQueryResponseDTO } from "../../../../../apis/chat/members/types";
 import "../../feed.css"
 import { 
     Calendar, 
@@ -11,14 +10,14 @@ import {
     Shield, 
     UserCheck,
     X,
-    Users as UsersIcon,
-    Crown,
-    Star,
-    MoreVertical
+    CheckCircle,
+    XCircle,
+    Loader2
 } from "lucide-react";
 import { Users, User } from "lucide-react";
 import { MyRoomsHomePageListDto } from "../../../../../apis/chat/rooms/types";
-import { RefObject, useState } from "react";
+import { RefObject } from "react";
+import MembersSection from "./MembersSection";
 
 interface RoomDetailsPanelProps {
     room: MyRoomsHomePageListDto;
@@ -27,67 +26,134 @@ interface RoomDetailsPanelProps {
     panelRef: RefObject<HTMLDivElement | null>;
 }
 
+interface ToastProps {
+    message: string;
+    type: 'success' | 'error' | 'info';
+    onClose: () => void;
+}
+
+const Toast = ({ message, type, onClose }: ToastProps) => {
+    setTimeout(() => {
+        onClose();
+    }, 3000);
+
+    return (
+        <div className="fixed top-20 right-4 z-50 animate-slide-in-right">
+            <div className={`
+                flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg
+                ${type === 'success' ? 'bg-green-500 text-white' : ''}
+                ${type === 'error' ? 'bg-red-500 text-white' : ''}
+                ${type === 'info' ? 'bg-blue-500 text-white' : ''}
+            `}>
+                {type === 'success' && <CheckCircle className="w-4 h-4" />}
+                {type === 'error' && <XCircle className="w-4 h-4" />}
+                {type === 'info' && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span className="text-sm font-medium">{message}</span>
+            </div>
+        </div>
+    );
+};
+
+interface ConfirmationDialogProps {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    darkmode: boolean;
+}
+
+const ConfirmationDialog = ({ title, message, onConfirm, onCancel, darkmode }: ConfirmationDialogProps) => {
+    return (
+        <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onCancel} />
+            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-80">
+                <div className={`
+                    rounded-xl shadow-2xl overflow-hidden
+                    ${darkmode ? 'bg-gray-800' : 'bg-white'}
+                `}>
+                    <div className={`p-4 ${darkmode ? 'border-b border-gray-700' : 'border-b border-gray-200'}`}>
+                        <h3 className={`font-semibold ${darkmode ? 'text-white' : 'text-gray-900'}`}>
+                            {title}
+                        </h3>
+                    </div>
+                    <div className="p-4">
+                        <p className={`text-sm ${darkmode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            {message}
+                        </p>
+                    </div>
+                    <div className={`flex gap-2 p-4 pt-0`}>
+                        <button
+                            onClick={onCancel}
+                            className={`
+                                flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                                ${darkmode 
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }
+                            `}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
 export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }: RoomDetailsPanelProps) {
-    const [showMemberMenu, setShowMemberMenu] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [confirmation, setConfirmation] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    } | null>(null);
     
     // Fetch detailed room information
     const { data: roomDetails, isLoading: isLoadingDetails } = useRoomById(
         room?.room_id || null
     );
-    
-    // Fetch all members in the room
-    const { 
-        data: members, 
-        isLoading: isLoadingMembers 
-    } = useActiveRoomMembersQuery(room?.room_id || null);
-    
+
     // Delete room mutation
     const { mutate: deleteRoom, isPending: isDeleting } = useDeleteGroupRoom();
 
+    // Show toast notification
+    const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+        setToast({ message, type });
+    };
+
     // Handle delete room
     const handleDeleteRoom = () => {
-        if (!room) return;
+        if (!room || !roomDetails) return;
         
-        const confirmDelete = window.confirm(
-            `Are you sure you want to delete "${room.name}"? This action cannot be undone.`
-        );
-        
-        if (confirmDelete && roomDetails) {
-            deleteRoom(roomDetails.room_id);
-            onClose();
-        }
+        setConfirmation({
+            title: 'Delete Room',
+            message: `Are you sure you want to delete "${room.name}"? This action cannot be undone.`,
+            onConfirm: () => {
+                setConfirmation(null);
+                showToast('Deleting room...', 'info');
+                
+                deleteRoom(roomDetails.room_id, {
+                    onSuccess: () => {
+                        showToast('Room deleted successfully', 'success');
+                        setTimeout(() => {
+                            onClose();
+                            window.location.href = '/chat';
+                        }, 1000);
+                    },
+                    onError: (error: any) => {
+                        showToast(error?.message || 'Failed to delete room', 'error');
+                    }
+                });
+            }
+        });
     };
-
-    // Helper to get display name from member
-    const getMemberDisplayName = (member: MemberQueryResponseDTO) => {
-        if (member.user.first_name && member.user.last_name) {
-            return `${member.user.first_name} ${member.user.last_name}`;
-        }
-        if (member.user.first_name) {
-            return member.user.first_name;
-        }
-        return member.user.username;
-    };
-
-    // Helper to get member role icon
-    const getMemberRoleIcon = (member: MemberQueryResponseDTO) => {
-        if (member.is_admin) {
-            return <Crown className="w-4 h-4 text-yellow-500" />;
-        }
-        return <User className="w-4 h-4 text-gray-400" />;
-    };
-
-    // Helper to get member role text
-    const getMemberRoleText = (member: MemberQueryResponseDTO) => {
-        if (member.is_admin) {
-            return "Admin";
-        }
-        return "Member";
-    };
-
-    // Group members by role
-    const admins = members?.filter(m => m.is_admin) || [];
-    const regularMembers = members?.filter(m => !m.is_admin) || [];
 
     return (
         <>
@@ -143,7 +209,7 @@ export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }:
                                 {/* Cover Image as Background - Larger and behind */}
                                 {roomDetails.has_cover_image && roomDetails.cover_image_url && (
                                     <img 
-                                        src={roomDetails.cover_image_url} 
+                                        src={roomDetails.cover_image_url || undefined} 
                                         alt="Cover background"
                                         className="absolute inset-0 w-full h-full rounded-full object-cover opacity-40"
                                     />
@@ -153,7 +219,7 @@ export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }:
                                 <div className="relative z-10">
                                     {roomDetails.has_profile_image && roomDetails.profile_image_url ? (
                                         <img 
-                                            src={roomDetails.profile_image_url} 
+                                            src={roomDetails.profile_image_url || undefined} 
                                             alt={roomDetails.name}
                                             className="w-32 h-32 rounded-full object-cover border-4 border-purple-500"
                                         />
@@ -275,194 +341,10 @@ export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }:
 
                             {/* Members Section - Only show for group rooms */}
                             {roomDetails.is_group && (
-                                <div className={`pt-4 border-t ${darkmode ? 'border-gray-800' : 'border-gray-200'}`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <UsersIcon className="w-5 h-5 text-purple-500" />
-                                            <h3 className={`font-semibold ${darkmode ? 'text-white' : 'text-gray-900'}`}>
-                                                Members
-                                            </h3>
-                                            <span className={`
-                                                text-xs px-2 py-0.5 rounded-full
-                                                ${darkmode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'}
-                                            `}>
-                                                {members?.length || 0}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {isLoadingMembers ? (
-                                        <div className="flex items-center justify-center py-8">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {/* Admins Section */}
-                                            {admins.length > 0 && (
-                                                <div>
-                                                    <h4 className={`
-                                                        text-xs font-semibold mb-2 uppercase tracking-wider
-                                                        ${darkmode ? 'text-gray-400' : 'text-gray-500'}
-                                                    `}>
-                                                        Administrators ({admins.length})
-                                                    </h4>
-                                                    <div className="space-y-2">
-                                                        {admins.map((member) => (
-                                                            <div
-                                                                key={member.member_id}
-                                                                className={`
-                                                                    flex items-center gap-3 p-2 rounded-lg
-                                                                    ${darkmode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}
-                                                                    transition-colors
-                                                                `}
-                                                            >
-                                                                {/* Avatar */}
-                                                                <div className="relative">
-                                                                    {member.user.profile_picture ? (
-                                                                        <img
-                                                                            src={member.user.profile_picture}
-                                                                            alt={getMemberDisplayName(member)}
-                                                                            className="w-10 h-10 rounded-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className={`
-                                                                            w-10 h-10 rounded-full flex items-center justify-center
-                                                                            bg-gradient-to-br from-purple-500 to-pink-500
-                                                                        `}>
-                                                                            <span className="text-white text-sm font-medium">
-                                                                                {getMemberDisplayName(member).charAt(0).toUpperCase()}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                    
-                                                                    {/* Role Badge */}
-                                                                    <div className="absolute -bottom-1 -right-1">
-                                                                        <div className={`
-                                                                            p-0.5 rounded-full
-                                                                            ${darkmode ? 'bg-dark' : 'bg-white'}
-                                                                        `}>
-                                                                            {getMemberRoleIcon(member)}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Member Info */}
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className={`font-medium truncate ${darkmode ? 'text-white' : 'text-gray-900'}`}>
-                                                                        {getMemberDisplayName(member)}
-                                                                        {member.user.username && getMemberDisplayName(member) !== member.user.username && (
-                                                                            <span className={`text-xs ml-1 ${darkmode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                                                (@{member.user.username})
-                                                                            </span>
-                                                                        )}
-                                                                    </p>
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                        {getMemberRoleText(member)}
-                                                                    </p>
-                                                                </div>
-
-                                                                {/* Joined Date */}
-                                                                <div className="text-right">
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                                        Joined
-                                                                    </p>
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                        {member.joined_at 
-                                                                            ? new Date(member.joined_at).toLocaleDateString()
-                                                                            : 'N/A'
-                                                                        }
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Regular Members Section */}
-                                            {regularMembers.length > 0 && (
-                                                <div>
-                                                    <h4 className={`
-                                                        text-xs font-semibold mb-2 uppercase tracking-wider
-                                                        ${darkmode ? 'text-gray-400' : 'text-gray-500'}
-                                                    `}>
-                                                        Members ({regularMembers.length})
-                                                    </h4>
-                                                    <div className="space-y-2">
-                                                        {regularMembers.map((member) => (
-                                                            <div
-                                                                key={member.member_id}
-                                                                className={`
-                                                                    flex items-center gap-3 p-2 rounded-lg
-                                                                    ${darkmode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}
-                                                                    transition-colors
-                                                                `}
-                                                            >
-                                                                {/* Avatar */}
-                                                                <div className="relative">
-                                                                    {member.user.profile_picture ? (
-                                                                        <img
-                                                                            src={member.user.profile_picture}
-                                                                            alt={getMemberDisplayName(member)}
-                                                                            className="w-10 h-10 rounded-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className={`
-                                                                            w-10 h-10 rounded-full flex items-center justify-center
-                                                                            bg-gradient-to-br from-blue-500 to-cyan-500
-                                                                        `}>
-                                                                            <span className="text-white text-sm font-medium">
-                                                                                {getMemberDisplayName(member).charAt(0).toUpperCase()}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Member Info */}
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className={`font-medium truncate ${darkmode ? 'text-white' : 'text-gray-900'}`}>
-                                                                        {getMemberDisplayName(member)}
-                                                                        {member.user.username && getMemberDisplayName(member) !== member.user.username && (
-                                                                            <span className={`text-xs ml-1 ${darkmode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                                                (@{member.user.username})
-                                                                            </span>
-                                                                        )}
-                                                                    </p>
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                        Member
-                                                                    </p>
-                                                                </div>
-
-                                                                {/* Joined Date */}
-                                                                <div className="text-right">
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                                        Joined
-                                                                    </p>
-                                                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                        {member.joined_at 
-                                                                            ? new Date(member.joined_at).toLocaleDateString()
-                                                                            : 'N/A'
-                                                                        }
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Empty State */}
-                                            {(!members || members.length === 0) && !isLoadingMembers && (
-                                                <div className="text-center py-8">
-                                                    <UsersIcon className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                                                    <p className={`text-sm ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                        No members found
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                <MembersSection 
+                                    roomId={roomDetails.room_id}
+                                    darkmode={darkmode}
+                                />
                             )}
                             
                             {/* Delete Room - Only for GROUP rooms and only if owner */}
@@ -496,6 +378,43 @@ export default function RoomDetailsPannel({ room, darkmode, onClose, panelRef }:
                     )}
                 </div>
             </div>
+            
+            {/* Toast Notifications */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
+            
+            {/* Confirmation Dialog */}
+            {confirmation && (
+                <ConfirmationDialog
+                    title={confirmation.title}
+                    message={confirmation.message}
+                    onConfirm={confirmation.onConfirm}
+                    onCancel={() => setConfirmation(null)}
+                    darkmode={darkmode}
+                />
+            )}
+            
+            <style>{`
+                @keyframes slide-in-right {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+                
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.3s ease-out;
+                }
+            `}</style>
         </>
     );
 }
