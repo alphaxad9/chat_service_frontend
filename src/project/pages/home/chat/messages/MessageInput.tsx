@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Image, X, Smile, AlertCircle } from 'lucide-react';
+import { Image, X, Smile, AlertCircle, Send } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSendMessage, useSendMessageWithImage } from '../../../../../apis/chat/messages/hooks';
@@ -105,43 +105,40 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
             }
 
             // === OPTIMISTIC CACHE UPDATE ===
-                // === OPTIMISTIC CACHE UPDATE ===
-        if (sentMessage && roomId) {
-            const now = new Date().toISOString();
-            
-            // Build LastMessagePreview with ALL required fields from your types.ts
-            const lastMessageForRoom: LastMessagePreview = {
-                id: sentMessage.id,
-                room_id: roomId,
-                content: sentMessage.content || null,
-                is_mine: true,
-                has_image: !!sentMessage.image_url || !!selectedImage,
-                image_url: sentMessage.image_url || null,
-                created_at: sentMessage.created_at || now,
-                status: sentMessage.status || 'sent',
-                sender_username: sentMessage.sender_username || '', // ✅ Add this required field
-                // Add any other required fields from your LastMessagePreview type:
-                // sender_id, message_type, edited_at, etc.
-            };
+            if (sentMessage && roomId) {
+                const now = new Date().toISOString();
+                
+                // Build LastMessagePreview with ALL required fields from your types.ts
+                const lastMessageForRoom: LastMessagePreview = {
+                    id: sentMessage.id,
+                    room_id: roomId,
+                    content: sentMessage.content || null,
+                    is_mine: true,
+                    has_image: !!sentMessage.image_url || !!selectedImage,
+                    image_url: sentMessage.image_url || null,
+                    created_at: sentMessage.created_at || now,
+                    status: sentMessage.status || 'sent',
+                    sender_username: sentMessage.sender_username || '',
+                };
 
-            queryClient.setQueryData<MyRoomsHomePageListDto[]>(
-                ['rooms', 'home'],
-                (oldRooms) => {
-                    if (!oldRooms) return oldRooms;
-                    return oldRooms.map((room) => {
-                        if (room.room_id === roomId) {
-                            return {
-                                ...room,
-                                last_message: lastMessageForRoom,
-                                last_activity_at: now,
-                                my_unread_messages_in_room: 0,
-                            };
-                        }
-                        return room;
-                    });
-                }
-            );
-        }
+                queryClient.setQueryData<MyRoomsHomePageListDto[]>(
+                    ['rooms', 'home'],
+                    (oldRooms) => {
+                        if (!oldRooms) return oldRooms;
+                        return oldRooms.map((room) => {
+                            if (room.room_id === roomId) {
+                                return {
+                                    ...room,
+                                    last_message: lastMessageForRoom,
+                                    last_activity_at: now,
+                                    my_unread_messages_in_room: 0,
+                                };
+                            }
+                            return room;
+                        });
+                    }
+                );
+            }
             setNewMessage('');
             clearSelectedImage();
             
@@ -158,7 +155,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         }
     };
     
-    const canSend = newMessage.trim().length > 0 && !isSending;
+    const canSend = (newMessage.trim().length > 0 || selectedImage) && !isSending;
     const isImageOnly = selectedImage && !newMessage.trim();
     
     return (
@@ -192,114 +189,118 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                 </div>
             )}
             
-            <div className="flex gap-2 relative z-40">
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageSelect}
-                    accept="image/*"
-                    className="hidden"
-                />
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSending}
-                    className={`
-                        p-2 rounded-full transition-all duration-300 flex-shrink-0
-                        ${darkmode 
-                            ? 'hover:bg-gray-800 text-gray-400 hover:text-purple-400' 
-                            : 'hover:bg-gray-100 text-gray-500 hover:text-purple-500'
-                        }
-                        ${isSending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                    `}
-                    title="Attach image"
-                >
-                    <Image className="w-5 h-5" />
-                </button>
-                
-                <div className="relative z-[100]" ref={emojiPickerRef}>
+            {/* Input Container with integrated buttons */}
+            <div className="relative z-40">
+                <div className={`
+                    flex items-center gap-2 rounded-full border transition-all
+                    ${darkmode 
+                        ? 'bg-gray-800 border-gray-700 focus-within:ring-2 focus-within:ring-purple-500' 
+                        : 'bg-gray-100 border-gray-300 focus-within:ring-2 focus-within:ring-purple-500'
+                    }
+                    ${isImageOnly ? 'ring-2 ring-yellow-500/50' : ''}
+                `}>
+                    {/* Hidden file input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageSelect}
+                        accept="image/*"
+                        className="hidden"
+                    />
+                    
+                    {/* Image Attachment Button */}
                     <button
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        onClick={() => fileInputRef.current?.click()}
                         disabled={isSending}
                         className={`
-                            p-2 rounded-full transition-all duration-300 flex-shrink-0
+                            p-2 ml-2 rounded-full transition-all duration-300 flex-shrink-0
                             ${darkmode 
-                                ? 'hover:bg-gray-800 text-gray-400 hover:text-yellow-400' 
-                                : 'hover:bg-gray-100 text-gray-500 hover:text-yellow-500'
+                                ? 'hover:bg-gray-700 text-gray-400 hover:text-purple-400' 
+                                : 'hover:bg-gray-200 text-gray-500 hover:text-purple-500'
                             }
-                            ${showEmojiPicker ? (darkmode ? 'bg-gray-800 text-yellow-400' : 'bg-gray-100 text-yellow-500') : ''}
                             ${isSending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                         `}
-                        title="Select emoji"
+                        title="Attach image"
                     >
-                        <Smile className="w-5 h-5" />
+                        <Image className="w-5 h-5" />
                     </button>
                     
-                    {showEmojiPicker && (
-                        <div className="absolute bottom-full mb-2 left-0 z-[100]">
-                            <EmojiPicker
-                                onEmojiClick={onEmojiClick}
-                                autoFocusSearch={false}
-                                width={350}
-                                height={400}
-                                searchPlaceholder="Search emojis..."
-                                lazyLoadEmojis={true}
-                            />
-                        </div>
-                    )}
-                </div>
-                
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={selectedImage ? "Add a message to send with your image..." : "Type a message..."}
-                    disabled={isSending}
-                    className={`
-                        flex-1 px-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all
-                        ${darkmode 
-                            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
-                            : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
-                        }
-                        ${isSending ? 'opacity-70 cursor-not-allowed' : ''}
-                        ${isImageOnly ? 'ring-2 ring-yellow-500/50' : ''}
-                    `}
-                />
-                
-                <button
-                    onClick={handleSendMessage}
-                    disabled={!canSend}
-                    className={`
-                        px-6 py-2 rounded-full font-semibold transition-all duration-300 flex-shrink-0 relative
-                        ${canSend && !isSending
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg transform hover:scale-105'
-                            : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                        }
-                    `}
-                    title={isImageOnly ? "Add a message to send with your image" : undefined}
-                >
-                    {isSending ? (
-                        <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            <span>Sending</span>
-                        </div>
-                    ) : (
-                        'Send'
-                    )}
+                    {/* Text Input */}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={selectedImage ? "Add a message to send with your image..." : "Type a message..."}
+                        disabled={isSending}
+                        className={`
+                            flex-1 py-2 bg-transparent focus:outline-none text-sm
+                            ${darkmode 
+                                ? 'text-white placeholder-gray-400' 
+                                : 'text-gray-900 placeholder-gray-500'
+                            }
+                            ${isSending ? 'opacity-70 cursor-not-allowed' : ''}
+                        `}
+                    />
                     
-                    {isImageOnly && (
-                        <div className={`
-                            absolute bottom-full right-0 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap
-                            ${darkmode ? 'bg-gray-900 text-gray-200' : 'bg-gray-800 text-white'}
-                            opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none
-                            before:content-[''] before:absolute before:bottom-[-4px] before:right-4 
-                            before:w-2 before:h-2 before:bg-inherit before:rotate-45
-                        `}>
-                            Add a message to send
-                        </div>
-                    )}
-                </button>
+                    {/* Emoji Picker Button */}
+                    <div className="relative" ref={emojiPickerRef}>
+                        <button
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            disabled={isSending}
+                            className={`
+                                p-2 rounded-full transition-all duration-300 flex-shrink-0
+                                ${darkmode 
+                                    ? 'hover:bg-gray-700 text-gray-400 hover:text-yellow-400' 
+                                    : 'hover:bg-gray-200 text-gray-500 hover:text-yellow-500'
+                                }
+                                ${showEmojiPicker ? (darkmode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-200 text-yellow-500') : ''}
+                                ${isSending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            `}
+                            title="Select emoji"
+                        >
+                            <Smile className="w-5 h-5" />
+                        </button>
+                        
+                        {showEmojiPicker && (
+                            <div className="absolute bottom-full mb-2 right-0 z-[100]">
+                                <EmojiPicker
+                                    onEmojiClick={onEmojiClick}
+                                    autoFocusSearch={false}
+                                    width={350}
+                                    height={400}
+                                    searchPlaceholder="Search emojis..."
+                                    lazyLoadEmojis={true}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Send Button */}
+                    <button
+                        onClick={handleSendMessage}
+                        disabled={!canSend}
+                        className={`
+                            p-2 mr-2 rounded-full transition-all duration-300 flex-shrink-0
+                            ${canSend && !isSending
+                                ? darkmode
+                                    ? 'bg-purple-600 text-white hover:bg-purple-700 hover:scale-105'
+                                    : 'bg-purple-500 text-white hover:bg-purple-600 hover:scale-105'
+                                : darkmode
+                                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            }
+                        `}
+                        title={isImageOnly ? "Add a message to send with your image" : "Send message"}
+                    >
+                        {isSending ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        ) : (
+                            <Send className="w-5 h-5" />
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );
