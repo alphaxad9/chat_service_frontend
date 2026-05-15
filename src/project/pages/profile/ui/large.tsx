@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import UpperLayer from './parts/upper_layer';
 import LowerLayer from './parts/lower_layer';
-import LowestSection from './parts/lowest';
 import EditProfileModal from './parts/component/EditProfileModal';
 import { useAuth } from '../../../../apis/user/authentication/AuthContext';
 function LargeProfile() {
@@ -46,9 +45,7 @@ function LargeProfile() {
 />
         
 
-        <div className="flex-1 min-h-0">
-          <LowestSection />
-        </div>
+       
       </div>
 
       {/* Modal is always mounted */}

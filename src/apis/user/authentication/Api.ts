@@ -93,11 +93,23 @@ export const getProfile = async (): Promise<UserProfile> => {
 
 
 // 7. Update Profile
+// 7. Update Profile
 export const updateProfile = async (data: UpdateProfileFormData): Promise<UserProfile> => {
   try {
     const csrfToken = await getCsrfToken();
 
-    // 🔁 Map camelCase → snake_case
+    // 🔁 Check if data is FormData → send as-is (multipart/form-data for file uploads)
+    if (data instanceof FormData) {
+      const response = await client.patch<UserProfile>('/users/profile/update/', data, {
+        headers: { 
+          'X-CSRFToken': csrfToken,
+          // ✅ Do NOT set Content-Type - let browser set it with boundary for multipart
+        },
+      });
+      return response.data;
+    }
+
+    // 🔁 Otherwise: plain object → map camelCase → snake_case for JSON payload
     const payload = {
       first_name: data.first_name,
       last_name: data.last_name,

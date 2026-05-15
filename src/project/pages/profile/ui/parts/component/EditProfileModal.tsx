@@ -1,4 +1,4 @@
-// EditProfileModal.tsx
+// src/components/EditProfileModal.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Edit, Trash2 } from 'lucide-react';
 import { RootState } from '../../../../../entities/store';
@@ -6,8 +6,8 @@ import { useSelector } from 'react-redux';
 import ProfileEdidForms from './forms';
 import { UpdateProfileFormData } from '../../../../../../modules/user/authentication/types/auth';
 import { useUpdateMyProfile } from '../../../../../../apis/user/profile/hooks';
-import { UpdateProfileRequest } from '../../../../../../apis/user/profile/types';
 import { useUpdateProfile } from '../../../../../../apis/user/authentication/Hooks';
+
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,17 +25,28 @@ interface EditProfileModalProps {
 }
 
 const EditProfileModal = ({ isOpen, onClose, onSave, initialData }: EditProfileModalProps) => {
-  const updateProfileMutation = useUpdateProfile();       // user fields
-const updateMyProfileMutation = useUpdateMyProfile(); 
+  const updateProfileMutation = useUpdateProfile();       // handles first_name + profile_picture
+  const updateMyProfileMutation = useUpdateMyProfile();   // handles bio, profession, etc.
+
   const darkmode = useSelector((state: RootState) => state.theme.isDark);
+
+  // ─────────────────────────────────────────────────────────────
+  // SEPARATE STATES: preview URL (for display) + File object (for upload)
+  // ─────────────────────────────────────────────────────────────
   const [bio, setBio] = useState(initialData.bio || '');
   const [first_name, setFirstName] = useState(initialData.first_name || '');
   const [last_name, setLastName] = useState(initialData.last_name || '');
   const [profession, setProfession] = useState(initialData.profession || '');
   const [location, setLocation] = useState(initialData.location || '');
   const [phone, setPhone] = useState<string | null>(initialData.phone || null);
-  const [profileImage, setProfileImage] = useState<string | null>(initialData.profileImage || null);
-  const [coverImage, setCoverImage] = useState<string | null>(initialData.coverImage || null);
+
+  // Profile image: preview string + actual File
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(initialData.profileImage || null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+
+  // Cover image: preview string + actual File
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(initialData.coverImage || null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
 
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
@@ -43,40 +54,45 @@ const updateMyProfileMutation = useUpdateMyProfile();
   const touchStartY = useRef(0);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setBio(initialData.bio || '');
-      setFirstName(initialData.first_name || "");
+      setFirstName(initialData.first_name || '');
       setLastName(initialData.last_name || '');
       setProfession(initialData.profession || '');
       setLocation(initialData.location || '');
-      setPhone(initialData.phone || '');
-      setProfileImage(initialData.profileImage || null);
-      setCoverImage(initialData.coverImage || null);
+      setPhone(initialData.phone || null);
+      setProfileImagePreview(initialData.profileImage || null);
+      setProfileImageFile(null);
+      setCoverImagePreview(initialData.coverImage || null);
+      setCoverImageFile(null);
     }
   }, [initialData, isOpen]);
 
+  // ─────────────────────────────────────────────────────────────
   // 📱 Swipe Down to Close (only when scrolled to top)
+  // ─────────────────────────────────────────────────────────────
   const handleTouchStart = (e: TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = () => {};
 
- const handleTouchEnd = useCallback((e: TouchEvent) => {
-  const touchY = e.changedTouches[0].clientY;
-  const deltaY = touchY - touchStartY.current;
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    const touchY = e.changedTouches[0].clientY;
+    const deltaY = touchY - touchStartY.current;
 
-  const startedNearTop = touchStartY.current < 150;
-  const pulledDownFarEnough = deltaY > 80;
+    const startedNearTop = touchStartY.current < 150;
+    const pulledDownFarEnough = deltaY > 80;
 
-  const scrollable = modalRef.current?.querySelector('.scrollable-content') as HTMLElement | null;
-  const isAtTop = !scrollable || scrollable.scrollTop === 0;
+    const scrollable = modalRef.current?.querySelector('.scrollable-content') as HTMLElement | null;
+    const isAtTop = !scrollable || scrollable.scrollTop === 0;
 
-  if (isAtTop && startedNearTop && pulledDownFarEnough) {
-    onClose();
-  }
-}, [onClose]); // ← only dependency is onClose
+    if (isAtTop && startedNearTop && pulledDownFarEnough) {
+      onClose();
+    }
+  }, [onClose]);
 
   useEffect(() => {
     const modal = modalRef.current;
@@ -95,63 +111,77 @@ const updateMyProfileMutation = useUpdateMyProfile();
     };
   }, [isOpen, handleTouchEnd]);
 
-  const handleSave = async () => {
-  // 1. Prepare user payload (first_name, last_name, profile_picture)
-  const userPayload: UpdateProfileFormData = {
-    first_name: first_name || '',
-    last_name: last_name || '',
-    profile_picture: profileImage ?? null,
-  };
-
-  // 2. Prepare profile payload
-    const profilePayload: UpdateProfileRequest = {
-      bio: bio || null,
-      profession: profession || null,
-      location: location || null,
-      phone: phone || null,
-    };
-
-    // Optional: if you support cover_image editing in this modal, add it:
-    if (coverImage !== initialData.coverImage) {
-      profilePayload.cover_image = coverImage; // assuming your API accepts base64 or URL
-    }
-
-    try {
-      await Promise.all([
-        updateProfileMutation.mutateAsync(userPayload),
-        updateMyProfileMutation.mutateAsync(profilePayload),
-      ]);
-      onSave(); // notify parent (e.g., to refetch or close)
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      // Optionally show error toast
-    }
-  };
-
+  // ─────────────────────────────────────────────────────────────
+  // 🖼️ File handlers: store BOTH preview URL + real File object
+  // ─────────────────────────────────────────────────────────────
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setProfileImage(url);
+      setProfileImageFile(file);  // ← REAL File for upload
+      setProfileImagePreview(URL.createObjectURL(file));  // ← Preview for UI
     }
   };
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setCoverImage(url);
+      setCoverImageFile(file);
+      setCoverImagePreview(URL.createObjectURL(file));
     }
   };
 
   const removeProfileImage = () => {
-    setProfileImage(null);
+    setProfileImagePreview(null);
+    setProfileImageFile(null);
     if (profileImageInputRef.current) profileImageInputRef.current.value = '';
   };
 
   const removeCoverImage = () => {
-    setCoverImage(null);
+    setCoverImagePreview(null);
+    setCoverImageFile(null);
     if (coverImageInputRef.current) coverImageInputRef.current.value = '';
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 💾 Save: Submit REAL file via FormData (exactly like your curl)
+  // ─────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    try {
+      // 1. Prepare FormData for User model (first_name, last_name, profile_picture)
+      const userFormData = new FormData();
+      userFormData.append('first_name', first_name || '');
+      userFormData.append('last_name', last_name || '');
+
+      if (profileImageFile) {
+        // ← Append actual File object (this becomes request.FILES['profile_picture'])
+        userFormData.append('profile_picture', profileImageFile);
+      } else if (profileImagePreview === null && initialData.profileImage) {
+        // User explicitly removed the image → send empty string to clear it
+        userFormData.append('profile_picture', '');
+      }
+      // If profileImageFile is null but preview still exists, we keep existing image (don't send field)
+
+      // 2. Prepare JSON payload for Profile model (bio, profession, location, phone)
+      const profilePayload = {
+        bio: bio || null,
+        profession: profession || null,
+        location: location || null,
+        phone: phone || null,
+      };
+
+      // 3. Execute both mutations in parallel
+      // 🔑 Type assertion to satisfy TypeScript (FormData is compatible at runtime)
+      await Promise.all([
+        updateProfileMutation.mutateAsync(userFormData as unknown as UpdateProfileFormData),
+        updateMyProfileMutation.mutateAsync(profilePayload),
+      ]);
+
+      console.log('✅ Profile updated successfully (file uploaded)');
+      onSave(); // Notify parent to refetch or close
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      // Optionally show error toast here
+    }
   };
 
   return (
@@ -187,42 +217,12 @@ const updateMyProfileMutation = useUpdateMyProfile();
               <X size={22} />
             </button>
           </div>
-
-          {/* === COVER IMAGE === */}
-          <div className="relative h-32 w-full -mx-5 px-5 overflow-hidden">
-            {coverImage ? (
-              <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
-            ) : (
-              <div className={`w-full h-full ${darkmode ? 'bg-gray-800' : 'bg-gray-300'}`}></div>
-            )}
-
-            {/* Cover Edit/Delete Controls */}
-            <div className="absolute top-2 right-2 flex gap-2">
-              <button
-                onClick={() => coverImageInputRef.current?.click()}
-                className="p-1.5 bg-black/60 backdrop-blur rounded-full hover:bg-black/80 transition-colors"
-                aria-label="Edit cover photo"
-              >
-                <Edit size={16} className="text-white" />
-              </button>
-              {coverImage && (
-                <button
-                  onClick={removeCoverImage}
-                  className="p-1.5 bg-black/60 backdrop-blur rounded-full hover:bg-red-500/80 transition-colors"
-                  aria-label="Delete cover photo"
-                >
-                  <Trash2 size={16} className="text-white" />
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* === PROFILE IMAGE (overlapping cover bottom) === */}
           <div className="relative flex justify-center -mt-12 z-10 mb-6">
             <div className="relative">
-              {profileImage ? (
+              {profileImagePreview ? (
                 <img
-                  src={profileImage}
+                  src={profileImagePreview}
                   alt="Profile"
                   className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-lg"
                 />
@@ -239,7 +239,7 @@ const updateMyProfileMutation = useUpdateMyProfile();
                 >
                   <Edit size={14} className="text-white" />
                 </button>
-                {profileImage && (
+                {profileImagePreview && (
                   <button
                     onClick={removeProfileImage}
                     className="p-1 bg-black/60 rounded-full hover:bg-red-500/80 transition-colors"
@@ -268,7 +268,6 @@ const updateMyProfileMutation = useUpdateMyProfile();
             setLocation={setLocation}
           />
         </div>
-        
 
         {/* Hidden file inputs */}
         <input

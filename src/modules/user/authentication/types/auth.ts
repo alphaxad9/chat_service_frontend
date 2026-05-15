@@ -11,12 +11,13 @@ export interface RegisterFormData {
 }
 
 // ✅ Allow File during submission
-export interface UpdateProfileFormData {
-  first_name: string;
-  last_name: string;
-  profile_picture: File | string | null; // ✅ Accept File for upload
-}
-
+export type UpdateProfileFormData = 
+  | {
+      first_name: string;
+      last_name: string;
+      profile_picture: File | string | null;
+    }
+  | FormData; 
 // ✅ Response type (what you get from API)
 export interface UserProfile {
   id: string;

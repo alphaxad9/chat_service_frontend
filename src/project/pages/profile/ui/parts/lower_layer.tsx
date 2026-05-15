@@ -5,7 +5,7 @@ interface LowerLayerProps {
   bio: string | null;
   profession: string | null;
   location: string | null;
-  phone: string | null; // 👈 added
+  phone: string | null;
   followers_count: number;
   following_count: number;
   toggleFollow: () => void;
@@ -15,74 +15,54 @@ const LowerLayer = ({
   bio, 
   profession, 
   location, 
-  phone, // 👈 destructured
-  followers_count, 
-  following_count, 
+  phone, 
   toggleFollow 
 }: LowerLayerProps) => {
   return (
-    <div className="px-5 pb-2 pt-2">
-      <div className="flex flex-col md:flex-row gap-8 md:gap-10">
-        {/* LEFT COLUMN: Stats + Buttons in rows */}
-        <div className="md:w-1/3 flex flex-col gap-2">
-          {/* Stats Row */}
-<div className="flex justify-between gap-3">
-  <div className="text-center flex-1">
-    <div className="text-lg font-bold text-white">{followers_count.toLocaleString()}</div>
-    <div className="text-gray-500 text-sm mt-1">Followers</div>
-  </div>
-  <div className="text-center flex-1">
-    <div className="text-lg font-bold text-white">{following_count.toLocaleString()}</div>
-    <div className="text-gray-500 text-sm mt-1">Following</div>
-  </div>
-  <div className="text-center flex-1">
-    <div className="text-lg font-bold text-white">32</div>
-    <div className="text-gray-500 text-sm mt-1">Posts</div>
-  </div>
-</div>
+    <div className="px-5 pb-4 pt-2">
+      {/* Centered Content Container */}
+      <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
 
-          {/* Buttons Row */}
-          <div className="flex gap-5">
-            <button
-              onClick={toggleFollow}
-              className={`flex-1 py-2.5 px-3 rounded-lg font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black bg-light text-dark hover:bg-gray-700 focus:ring-gray-600
-              `}
-            >
+
+        {/* Edit Profile Button - Centered */}
+        <div className="mb-5 w-full flex justify-center">
+          <button
+            onClick={toggleFollow}
+            className="py-2.5 px-6 rounded-lg font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black bg-light text-dark hover:bg-gray-700 focus:ring-gray-600"
+          >
             Edit Profile
-            </button>
-        
-          </div>
+          </button>
         </div>
 
-        {/* RIGHT COLUMN: Bio + Details */}
-        <div className="md:w-2/3 flex flex-col gap-2">
-          {bio && (
-            <p className="text-gray-300 leading-relaxed text-sm">
-              {bio}
-            </p>
+        {/* Bio - Centered */}
+        {bio && (
+          <p className="text-gray-300 leading-relaxed text-sm mb-5 max-w-prose">
+            {bio}
+          </p>
+        )}
+
+        {/* Details Grid - Centered Items */}
+        <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm">
+          {phone && (
+            <div className="flex items-center gap-2">
+              <Phone className="text-gray-500 flex-shrink-0" size={16} />
+              <span className="text-gray-300">{phone}</span>
+            </div>
           )}
-
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-  {phone && (
-    <div className="flex items-start gap-2.5">
-      <Phone className="text-gray-500 mt-0.5 flex-shrink-0" size={16} />
-      <span className="text-gray-300 text-sm">{phone}</span>
-    </div>
-  )}
-  {profession && (
-    <div className="flex items-start gap-2.5">
-      <Briefcase className="text-gray-500 mt-0.5 flex-shrink-0" size={16} />
-      <span className="text-gray-300 text-sm">{profession}</span>
-    </div>
-  )}
-  {location && (
-    <div className="flex items-start gap-2.5 md:col-span-1">
-      <MapPin className="text-gray-500 mt-0.5 flex-shrink-0" size={16} />
-      <span className="text-gray-300 text-sm">{location}</span>
-    </div>
-  )}
-</div>
+          {profession && (
+            <div className="flex items-center gap-2">
+              <Briefcase className="text-gray-500 flex-shrink-0" size={16} />
+              <span className="text-gray-300">{profession}</span>
+            </div>
+          )}
+          {location && (
+            <div className="flex items-center gap-2">
+              <MapPin className="text-gray-500 flex-shrink-0" size={16} />
+              <span className="text-gray-300">{location}</span>
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+// src/project/pages/profile/ui/FillLargeScreen.tsx
 import { User, Camera } from 'lucide-react';
 import PersonalInfo from './pages/personal_info';
 import { useAuth } from '../../../../../apis/user/authentication/AuthContext';
@@ -20,14 +21,17 @@ import { UpdateProfileRequest } from '../../../../../apis/user/profile/types';
 import { parseDate, formatDate } from './helpers/helpers';
 
 const FillLargeScreen = () => {
-  
   const updateProfileMutation = useUpdateMyProfile();
   const updateUserMutation = useUpdateProfile();
-  const isSubmitting = updateProfileMutation.isPending;
-  const navigate = useNavigate()
+  const isSubmitting = updateProfileMutation.isPending || updateUserMutation.isPending;
+  const navigate = useNavigate();
   const { myProfile, isProfileLoading, profile, isAuthBooting, isMyProfileLoading } = useAuth();
 
   const dispatch = useDispatch();
+
+  // ─────────────────────────────────────────────────────────────
+  // ✅ SEPARATE: preview strings (for UI) + File objects (for upload)
+  // ─────────────────────────────────────────────────────────────
   const [formState, setFormState] = useState<{
     // From UpdateProfileRequest
     bio: string | null;
@@ -41,10 +45,16 @@ const FillLargeScreen = () => {
     theme: 'light' | 'dark' | 'system';
     cover_image: string | null;
 
-    // UI-only
+    // UI-only: preview URLs
     first_name: string;
     last_name: string;
-    profileImage: string | null;
+    profileImagePreview: string | null;
+    coverImagePreview: string | null;
+
+    // ✅ REAL File objects for upload
+    profileImageFile: File | null;
+    coverImageFile: File | null;
+
     dateOfBirth: { day: string; month: string; year: string };
     locationOption: CountryOption | null;
     languageOption: LanguageOption | null;
@@ -61,7 +71,10 @@ const FillLargeScreen = () => {
     cover_image: null,
     first_name: '',
     last_name: '',
-    profileImage: null,
+    profileImagePreview: null,
+    coverImagePreview: null,
+    profileImageFile: null,
+    coverImageFile: null,
     dateOfBirth: { day: '', month: '', year: '' },
     locationOption: null,
     languageOption: null,
@@ -86,10 +99,11 @@ const FillLargeScreen = () => {
         theme: (myProfile.theme as 'light' | 'dark' | 'system') ?? 'system',
         cover_image: myProfile.cover_image ?? null,
 
-        // ✅ Fix: use snake_case from ProfileUserDTO
+        // Profile fields
         first_name: profile?.first_name ?? '',
         last_name: profile?.last_name ?? '',
-        profileImage: profile?.profile_picture ?? null,
+        profileImagePreview: profile?.profile_picture ?? null,
+        profileImageFile: null, // reset file on load
 
         // UI state
         dateOfBirth: dobParts,
@@ -101,79 +115,102 @@ const FillLargeScreen = () => {
           : null,
       }));
     }
-  }, [myProfile, isProfileLoading, isMyProfileLoading, profile?.first_name, profile?.last_name, profile?.profile_picture]);
+  }, [myProfile, isProfileLoading, isMyProfileLoading, profile]);
 
+  // ─────────────────────────────────────────────────────────────
+  // 🖼️ Image handlers: store BOTH preview + real File
+  // ─────────────────────────────────────────────────────────────
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormState((prev) => ({
-          ...prev,
-          profileImage: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCoverUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormState((prev) => ({
-          ...prev,
-          cover_image: reader.result as string,
-        }));
-      };
-      reader.readAsDataURL(file);
+      // ✅ Store real File for upload
+      setFormState((prev) => ({ ...prev, profileImageFile: file }));
+      // ✅ Create preview URL for UI
+      const previewUrl = URL.createObjectURL(file);
+      setFormState((prev) => ({ ...prev, profileImagePreview: previewUrl }));
     }
   };
 
   const handleSubmit = async () => {
-  const dob = formatDate(formState.dateOfBirth);
-  const PLACEHOLDER_PHONE = '+12195550114';
-  const phoneToSubmit = formState.phone === PLACEHOLDER_PHONE ? null : formState.phone;
+    const dob = formatDate(formState.dateOfBirth);
+    const PLACEHOLDER_PHONE = '+12195550114';
+    const phoneToSubmit = formState.phone === PLACEHOLDER_PHONE ? null : formState.phone;
 
-  const userPayload: UpdateProfileFormData = {
-    first_name: formState.first_name,
-    last_name: formState.last_name,
-    profile_picture: formState.profileImage ?? '',
-  };
+    // ── 1. Prepare User payload (first_name, last_name, profile_picture) ──
+    let userPayload: UpdateProfileFormData | FormData;
 
-  const profilePayload: UpdateProfileRequest = {
-    bio: formState.bio || null,
-    profession: formState.profession || null,
-    account_type: formState.account_type,
-    ...(dob !== null && { date_of_birth: dob }),
-    gender: formState.gender || null,
-    phone: phoneToSubmit,
-    location: formState.location,
-    language: formState.language,
-    theme: formState.theme,
-    cover_image: formState.cover_image,
-  };
+    // Check if we have ANY file to upload (profile or cover)
+    const hasProfileFile = !!formState.profileImageFile;
+    const hasCoverFile = !!formState.coverImageFile;
 
-  dispatch(triggerAuthLoading());
+    if (hasProfileFile || hasCoverFile) {
+      // ✅ Use FormData for file uploads
+      const formData = new FormData();
+      
+      // Always include text fields
+      formData.append('first_name', formState.first_name);
+      formData.append('last_name', formState.last_name);
+      
+      // Add profile_picture if file exists
+      if (hasProfileFile) {
+        formData.append('profile_picture', formState.profileImageFile!);
+      } else if (formState.profileImagePreview === null) {
+        // User removed the image → send empty to clear
+        formData.append('profile_picture', '');
+      }
+      
+      // ✅ Add cover_image if file exists (send to same endpoint or adjust as needed)
+      if (hasCoverFile) {
+        formData.append('cover_image', formState.coverImageFile!);
+      } else if (formState.coverImagePreview === null && formState.cover_image) {
+        // User removed cover → send empty to clear
+        formData.append('cover_image', '');
+      }
+      
+      userPayload = formData;
+    } else {
+      // ✅ Plain object for text-only update
+      userPayload = {
+        first_name: formState.first_name,
+        last_name: formState.last_name,
+        profile_picture: formState.profileImagePreview ?? '',
+      };
+    }
 
-  try {
-    await Promise.all([
-      updateUserMutation.mutateAsync(userPayload),
-      updateProfileMutation.mutateAsync(profilePayload),
-    ]);
-    navigate('/');
-  } catch (error) {
-    console.error('Profile update failed:', error);
-  } finally {
+    // ── 2. Prepare Profile payload (bio, profession, etc.) ──
+    const profilePayload: UpdateProfileRequest = {
+      bio: formState.bio || null,
+      profession: formState.profession || null,
+      account_type: formState.account_type,
+      ...(dob !== null && { date_of_birth: dob }),
+      gender: formState.gender || null,
+      phone: phoneToSubmit,
+      location: formState.location,
+      language: formState.language,
+      theme: formState.theme,
+      // ✅ Only send cover_image as string if NO file was uploaded
+      cover_image: hasCoverFile ? null : formState.cover_image,
+    };
+
     dispatch(triggerAuthLoading());
-  }
-};
+
+    try {
+      await Promise.all([
+        updateUserMutation.mutateAsync(userPayload),   // ← FormData (with files) or plain object
+        updateProfileMutation.mutateAsync(profilePayload),
+      ]);
+      navigate('/');
+    } catch (error) {
+      console.error('Profile update failed:', error);
+    } finally {
+      dispatch(triggerAuthLoading());
+    }
+  };
 
   const handleSkip = () => {
-  dispatch(triggerAuthLoading());
-  navigate('/');
-};
+    dispatch(triggerAuthLoading());
+    navigate('/');
+  };
 
   const {
     bio,
@@ -184,11 +221,10 @@ const FillLargeScreen = () => {
     theme,
     first_name,
     last_name,
-    profileImage,
+    profileImagePreview,
     dateOfBirth,
     locationOption,
     languageOption,
-    cover_image,
   } = formState;
 
   const setBio = (value: string) => setFormState((prev) => ({ ...prev, bio: value }));
@@ -197,10 +233,7 @@ const FillLargeScreen = () => {
     setFormState((prev) => ({ ...prev, account_type: value }));
   const setGender = (value: string) => setFormState((prev) => ({ ...prev, gender: value }));
   const setPhone = (value: string | undefined) => {
-    setFormState((prev) => ({
-      ...prev,
-      phone: value ?? null,
-    }));
+    setFormState((prev) => ({ ...prev, phone: value ?? null }));
   };
   const setTheme = (value: 'light' | 'dark' | 'system') =>
     setFormState((prev) => ({ ...prev, theme: value }));
@@ -227,8 +260,7 @@ const FillLargeScreen = () => {
 
   if (isAuthBooting || isProfileLoading || isMyProfileLoading) {
     return <FullScreenLoader />;
-}
-
+  }
 
   return (
     <div className="bg-dark text-[0.8rem] text-white min-h-screen p-6">
@@ -236,49 +268,31 @@ const FillLargeScreen = () => {
         <AuthLoader />
       </div>
 
-      {/* Profile Header with Cover & Avatar */}
-      <div className="relative w-full h-48 mb-16">
-        {/* Cover Image Background */}
-        <div className="absolute inset-0 bg-gray-800 rounded-xl overflow-hidden">
-          {cover_image ? (
-            <img src={cover_image} alt="Cover" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
-              Cover Photo
-            </div>
-          )}
-        </div>
-
-        {/* Optional: Cover Upload Button */}
-        <label
-          htmlFor="cover-upload"
-          className="absolute top-3 right-3 bg-black/50 text-white p-2 rounded-full cursor-pointer hover:bg-black/70 transition"
-        >
-          <Camera size={16} />
-          <input
-            id="cover-upload"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleCoverUpload}
-          />
-        </label>
-
-        {/* Profile Picture (Overlapping bottom-left) */}
-        <div className="absolute -bottom-12 left-6 z-10">
+      {/* Profile Header with Cover & Avatar - Centered Layout */}
+      <div className="relative w-full mt-10 mb-8">
+        {/* Cover Image Area (optional gradient background) */}
+       
+        {/* Centered Profile Section */}
+        <div className="flex flex-col items-center -mt-12">
+          {/* Profile Picture with Upload */}
           <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-dark bg-dark flex items-center justify-center">
-              {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-dark bg-dark flex items-center justify-center shadow-lg">
+              {profileImagePreview ? (
+                <img 
+                  src={profileImagePreview} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover" 
+                />
               ) : (
                 <User size={72} className="text-gray-400" />
               )}
             </div>
             <label
               htmlFor="profile-upload"
-              className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-2 cursor-pointer hover:bg-blue-700 transition-colors"
+              className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1.5 cursor-pointer hover:bg-blue-700 transition-colors shadow-md"
+              aria-label="Upload profile picture"
             >
-              <Camera size={16} />
+              <Camera size={14} className="text-white" />
               <input
                 id="profile-upload"
                 type="file"
@@ -288,16 +302,13 @@ const FillLargeScreen = () => {
               />
             </label>
           </div>
-        </div>
 
-        {/* Username & Tagline */}
-        <div className="absolute bottom-4 left-36 text-white z-10">
-          <button className="px-4 py-2 rounded-lg text-xl font-semibold transition hover:bg-gray-800/50">
-            @{profile?.username}
-          </button>
-          <p className="text-sm text-gray-300 mt-1">
-            Complete your profile to discover the best for you!
-          </p>
+          {/* Username & Tagline - Below Avatar */}
+          <div className="mt-4 text-center">
+            <button className="px-2 py-1.5 rounded-lg text-lg font-semibold transition hover:bg-gray-800/50">
+              @{profile?.username}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -346,21 +357,26 @@ const FillLargeScreen = () => {
       />
 
       <Theme theme={theme} setTheme={setTheme} />
-          <div className='flex flex-row items-center justify-around'>
-      
-    <button
-      type="button"
-      onClick={handleSubmit}
-      disabled={isSubmitting}
-      className={`py-2 px-4 font-semibold rounded-xl shadow-md transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
-        isSubmitting
-          ? 'bg-gray-500 cursor-not-allowed'
-          : 'bg-light from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-dark hover:scale-[1.01]'
-      }`}
-    >
-      {isSubmitting ? 'Saving...' : 'Submit'}
-    </button>
-              <button className="py-2 px-4 bg-light from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-dark font-semibold rounded-xl shadow-md transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 hover:scale-[1.01]" onClick={handleSkip}>Skip</button>
+
+      <div className="flex flex-row items-center justify-around pt-4">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className={`py-2 px-4 font-semibold rounded-xl shadow-md transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
+            isSubmitting
+              ? 'bg-gray-500 cursor-not-allowed'
+              : 'bg-light from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-dark hover:scale-[1.01]'
+          }`}
+        >
+          {isSubmitting ? 'Saving...' : 'Submit'}
+        </button>
+        <button
+          className="py-2 px-4 bg-light from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-dark font-semibold rounded-xl shadow-md transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 hover:scale-[1.01]"
+          onClick={handleSkip}
+        >
+          Skip
+        </button>
       </div>
     </div>
   );

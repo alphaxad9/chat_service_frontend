@@ -38,7 +38,8 @@ const ToggleButton: React.FC = () => {
 
   const handleToggle = async () => {
     const newIsDark = !darkmode;
-    const newThemeValue = newIsDark ? 'dark' : 'light';
+    const newThemeValue = newIsDark ? 'dark' : 'dark';
+    // const newThemeValue = newIsDark ? 'dark' : 'light';
 
     // 1. Update Redux + localStorage
     dispatch(toggleTheme());
@@ -58,6 +59,7 @@ const ToggleButton: React.FC = () => {
     <button
       onClick={handleToggle}
       className="p-2 hover:bg-myhover rounded-full transition-colors"
+      disabled
     >
       {darkmode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>
