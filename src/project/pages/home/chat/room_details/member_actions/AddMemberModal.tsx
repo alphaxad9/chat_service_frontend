@@ -20,7 +20,7 @@ const AddMemberModal = ({
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [selectedRole, setSelectedRole] = useState<"USER" | "ADMIN">("USER");
     
-    const { data: availableUsers, isLoading, refetch } = useUsersToAddInGroup(roomId, { limit: 100 });
+    const { data: availableUsers, isLoading } = useUsersToAddInGroup(roomId, { limit: 100 });
     const createMember = useCreateMember();
     
     const filteredUsers = availableUsers?.filter(user => 

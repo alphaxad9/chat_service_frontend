@@ -16,10 +16,8 @@ import {
   MemberSummaryDTO,
   MemberCountResponse,
   MyUnreadCountResponse,
-  MemberStatusResponse,
   ExistsResponse,
   // Utility types
-  MemberApiEndpoints,
 } from './types';
 
 // =============================================================================

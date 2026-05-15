@@ -1,7 +1,7 @@
 // src/project/pages/chat/ChatRoom.tsx
 import { useState, useRef, useEffect } from "react";
 import { MyRoomsHomePageListDto } from "../../../../apis/chat/rooms/types";
-import { ArrowLeft, Users, User, X} from "lucide-react";
+import { ArrowLeft, Users, User} from "lucide-react";
 import MessageArea from "./messages/MessageArea";
 import RoomDetailsPannel from "./room_details/RoomDetailsPannel";
 

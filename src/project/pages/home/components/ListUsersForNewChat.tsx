@@ -97,10 +97,7 @@ const ListUsersForNewChat = ({ filteredUsers, darkmode, onClose }: ListUsersForN
             const result = await createGroupRoom.mutateAsync(formData);
             
             if (result.room_id) {
-                // Get selected users details for optimistic update
-                const selectedUsersDetails = filteredUsers.filter(user => 
-                    selectedUsers.has(user.user_id)
-                );
+             
                 
                 const optimisticRoom: MyRoomsHomePageListDto = {
                     room_id: result.room_id,

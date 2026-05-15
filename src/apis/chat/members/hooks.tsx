@@ -36,7 +36,6 @@ import {
   checkMemberExistsQuery,
   checkMyMembershipExistsQuery,
   // Helpers
-  handleExistsResponse,
   formatUnreadCount,
 } from './apis';
 import {
@@ -50,7 +49,6 @@ import {
   MemberSummaryDTO,
   MemberCountResponse,
   MyUnreadCountResponse,
-  MemberStatusResponse,
 } from './types';
 
 // =============================================================================
