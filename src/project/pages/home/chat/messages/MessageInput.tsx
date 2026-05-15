@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { Image, X, Smile, AlertCircle, Send } from 'lucide-react';
+import { Image, X, Smile, AlertCircle, Send, Reply as ReplyIcon } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSendMessage, useSendMessageWithImage } from '../../../../../apis/chat/messages/hooks';
-import { SendMessageRequest } from '../../../../../apis/chat/messages/types';
+import { 
+    useSendMessage, 
+    useSendMessageWithImage, 
+    useSendReplyMessageWithImage, 
+    useSendReplyMessage 
+} from '../../../../../apis/chat/messages/hooks';
+import { SendMessageRequest, ReplyMessageRequest, MessageQueryResponseDTO } from '../../../../../apis/chat/messages/types';
 import type { 
     MyRoomsHomePageListDto, 
     LastMessagePreview 
@@ -12,10 +17,18 @@ import type {
 interface MessageInputProps {
     darkmode: boolean;
     roomId: string | null;
-    onMessageSent?: () => void; 
+    onMessageSent?: () => void;
+    replyingTo?: MessageQueryResponseDTO | null;
+    onCancelReply?: () => void;
 }
 
-const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) => {
+const MessageInput = ({ 
+    darkmode, 
+    roomId, 
+    onMessageSent,
+    replyingTo,
+    onCancelReply 
+}: MessageInputProps) => {
     const [newMessage, setNewMessage] = useState('');
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -27,10 +40,15 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
     
     const queryClient = useQueryClient();
     
+    // Regular message mutations
     const { mutateAsync: sendMessage, isPending: isSendingText } = useSendMessage(roomId || undefined);
     const { mutateAsync: sendMessageWithImage, isPending: isSendingImage } = useSendMessageWithImage(roomId || undefined);
     
-    const isSending = isSendingText || isSendingImage;
+    // Reply message mutations
+    const { mutateAsync: sendReplyMessage, isPending: isSendingReply } = useSendReplyMessage(roomId || undefined);
+    const { mutateAsync: sendReplyMessageWithImage, isPending: isSendingReplyImage } = useSendMessageWithImage(roomId || undefined);
+    
+    const isSending = isSendingText || isSendingImage || isSendingReply || isSendingReplyImage;
     
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -48,6 +66,13 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
             return () => clearTimeout(timer);
         }
     }, [showImageContentHint]);
+
+    // Focus input when reply mode is activated
+    useEffect(() => {
+        if (replyingTo) {
+            inputRef.current?.focus();
+        }
+    }, [replyingTo]);
     
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -74,9 +99,12 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         inputRef.current?.focus();
     };
     
-    const buildImageFormData = (): FormData => {
+    const buildImageFormData = (isReply: boolean = false): FormData => {
         const formData = new FormData();
         formData.append('room_id', roomId!);
+        if (isReply && replyingTo) {
+            formData.append('parent_id', replyingTo.id);
+        }
         if (newMessage.trim()) formData.append('content', newMessage.trim());
         formData.append('image', selectedImage!);
         return formData;
@@ -93,22 +121,37 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
         try {
             let sentMessage: any;
 
+            // Determine if sending a reply or regular message
+            const isReply = !!replyingTo;
+
             if (selectedImage) {
-                const formData = buildImageFormData();
-                sentMessage = await sendMessageWithImage(formData);
+                const formData = buildImageFormData(isReply);
+                if (isReply) {
+                    sentMessage = await sendReplyMessageWithImage(formData);
+                } else {
+                    sentMessage = await sendMessageWithImage(formData);
+                }
             } else if (newMessage.trim()) {
-                const request: SendMessageRequest = {
-                    room_id: roomId,
-                    content: newMessage.trim()
-                };
-                sentMessage = await sendMessage(request);
+                if (isReply) {
+                    const request: ReplyMessageRequest = {
+                        room_id: roomId,
+                        parent_id: replyingTo!.id,
+                        content: newMessage.trim()
+                    };
+                    sentMessage = await sendReplyMessage(request);
+                } else {
+                    const request: SendMessageRequest = {
+                        room_id: roomId,
+                        content: newMessage.trim()
+                    };
+                    sentMessage = await sendMessage(request);
+                }
             }
 
             // === OPTIMISTIC CACHE UPDATE ===
             if (sentMessage && roomId) {
                 const now = new Date().toISOString();
                 
-                // Build LastMessagePreview with ALL required fields from your types.ts
                 const lastMessageForRoom: LastMessagePreview = {
                     id: sentMessage.id,
                     room_id: roomId,
@@ -139,8 +182,11 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                     }
                 );
             }
+            
+            // Reset form and reply state
             setNewMessage('');
             clearSelectedImage();
+            if (onCancelReply) onCancelReply();
             
             if (onMessageSent) onMessageSent();
         } catch (error) {
@@ -158,8 +204,53 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
     const canSend = (newMessage.trim().length > 0 || selectedImage) && !isSending;
     const isImageOnly = selectedImage && !newMessage.trim();
     
+    // Get preview text for the message being replied to
+    const getReplyPreviewText = () => {
+        if (!replyingTo) return '';
+        if (replyingTo.has_image && replyingTo.image_url) {
+            return replyingTo.content ? `📷 ${replyingTo.content}` : '📷 Photo';
+        }
+        return replyingTo.content || '';
+    };
+    
     return (
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-inherit">
+        <div className="flex-shrink-0 p-4 dark:border-gray-800 bg-inherit">
+            {/* Reply Preview Bar */}
+            {replyingTo && (
+                <div className={`
+                    mb-3 p-3 rounded-lg border-l-4 flex items-start gap-2
+                    ${darkmode 
+                        ? 'bg-gray-800/50 border-purple-500' 
+                        : 'bg-gray-100 border-purple-500'
+                    }
+                `}>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <ReplyIcon className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                            <span className={`text-xs font-medium ${darkmode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                Replying to {replyingTo.sender_username}
+                            </span>
+                        </div>
+                        <p className={`text-sm truncate ${darkmode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {getReplyPreviewText()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onCancelReply}
+                        className={`
+                            p-1 rounded-full flex-shrink-0 transition-colors
+                            ${darkmode 
+                                ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+                                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                            }
+                        `}
+                        title="Cancel reply"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+            
             {imagePreview && (
                 <div className="mb-3 relative inline-block">
                     <div className="relative group">
@@ -232,7 +323,13 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={selectedImage ? "Add a message to send with your image..." : "Type a message..."}
+                        placeholder={
+                            replyingTo 
+                                ? "Reply..." 
+                                : selectedImage 
+                                    ? "Add a message to send with your image..." 
+                                    : "Type a message..."
+                        }
                         disabled={isSending}
                         className={`
                             flex-1 py-2 bg-transparent focus:outline-none text-sm
@@ -292,7 +389,7 @@ const MessageInput = ({ darkmode, roomId, onMessageSent }: MessageInputProps) =>
                                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }
                         `}
-                        title={isImageOnly ? "Add a message to send with your image" : "Send message"}
+                        title={isImageOnly ? "Add a message to send with your image" : replyingTo ? "Send reply" : "Send message"}
                     >
                         {isSending ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
