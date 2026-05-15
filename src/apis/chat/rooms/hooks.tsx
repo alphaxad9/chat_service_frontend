@@ -15,6 +15,7 @@ import {
   getUsersForNewConversation,
   // Helpers
   buildCreateGroupRoomFormData,
+  getUsersToAddInGroup,
   buildImageUpdateFormData,
 } from './api';
 import {
@@ -26,6 +27,8 @@ import {
   // Response types
   GetRoomByIdDTO,
   MyRoomsHomePageListDto,
+  GetUsersToAddInGroupParams,
+  UserView,
 } from './types';
 
 // =============================================================================
@@ -305,6 +308,30 @@ export const useUpdateRoomImage = (fieldName: 'cover_image' | 'profile_image') =
     },
   });
 };
+
+
+/**
+ * Fetch users available to add to a specific group room
+ * GET /api/query/rooms/{roomId}/users-to-add
+ * 
+ * @param roomId - UUID of the group room (pass null/undefined to disable query)
+ * @param params - Optional query params for pagination/filtering
+ */
+export const useUsersToAddInGroup = (
+  roomId: string | null | undefined,
+  params?: GetUsersToAddInGroupParams,
+  options?: Omit<UseQueryOptions<UserView[], Error>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery({
+    queryKey: ['rooms', 'users-to-add', roomId, params],
+    queryFn: () => getUsersToAddInGroup(roomId as string, params),
+    enabled: !!roomId,
+    ...options,
+  });
+};
+
+// Add this to the TYPE UTILITIES section at the bottom:
+export type UseUsersToAddInGroupReturn = ReturnType<typeof useUsersToAddInGroup>;
 
 /**
  * Alias hooks for clearer intent in components

@@ -400,3 +400,24 @@ export const buildImageUpdateFormData = (file: File, fieldName: "cover_image" | 
   formData.append(fieldName, file);
   return formData;
 };
+
+
+/**
+ * Query params for GET /api/query/rooms/{room_id}/users-to-add
+ */
+export interface GetUsersToAddInGroupParams {
+  limit?: number;           // default: 20
+  offset?: number;          // default: 0
+  include_deleted?: boolean; // default: false
+}
+
+// Add this to the UserView type definition section (if not already defined):
+// Note: If UserView is imported from external/users, ensure it includes these fields:
+export interface UserView {
+  user_id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  profile_picture: string | null; // relative path, convert to absolute if needed
+}

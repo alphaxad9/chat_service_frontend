@@ -13,6 +13,8 @@ import {
   GroupUpdateActionsResponse,
   GetRoomByIdDTO,
   MyRoomsHomePageListDto,
+  GetUsersToAddInGroupParams,
+  UserView,
 } from './types';
 
 // =============================================================================
@@ -325,4 +327,35 @@ export const buildImageUpdateFormData = (
   const formData = new FormData();
   formData.append(fieldName, file);
   return formData;
+};
+
+
+
+
+// Add this function in the ROOM QUERY APIs section, after getUsersForNewConversation:
+
+/**
+ * Fetch users available to add to a specific group room
+ * GET /api/query/rooms/{roomId}/users-to-add
+ * 
+ * @param roomId - UUID of the group room to add users to
+ * @param params - Optional query params: limit (default: 20), offset (default: 0), include_deleted (default: false)
+ * @returns List of UserView excluding existing room members and the requester, ready for "Add Members" UI
+ */
+export const getUsersToAddInGroup = async (
+  roomId: string,
+  params?: GetUsersToAddInGroupParams
+): Promise<UserView[]> => {
+  try {
+    const response = await chatClient.get<UserView[]>(
+      `/query/rooms/${roomId}/users-to-add`,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      console.error('Fetch users to add to group failed:', error.response?.data || error.message);
+    }
+    throw error;
+  }
 };
