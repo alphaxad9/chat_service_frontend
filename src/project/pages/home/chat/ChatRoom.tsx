@@ -1,19 +1,58 @@
-// src/project/pages/chat/ChatRoom.tsx
 import { useState, useRef, useEffect } from "react";
 import { MyRoomsHomePageListDto } from "../../../../apis/chat/rooms/types";
 import { ArrowLeft, Users, User} from "lucide-react";
 import MessageArea from "./messages/MessageArea";
 import RoomDetailsPannel from "./room_details/RoomDetailsPannel";
+import { MemberQueryResponseDTO } from "../../../../apis/chat/members/types";
+import { useActiveRoomMembersQuery } from "../../../../apis/chat/members/hooks";
 
 interface ChatRoomProps { 
     room: MyRoomsHomePageListDto | null; 
     darkmode: boolean; 
     onBack: () => void;
+    currentUserMemberId?: string;  // Optional: member_id of current user for "You" detection
 }
 
-const ChatRoom = ({ room, darkmode, onBack }: ChatRoomProps) => {
+const ChatRoom = ({ room, darkmode, onBack, currentUserMemberId }: ChatRoomProps) => {
     const [showDetailsPanel, setShowDetailsPanel] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
+    
+    // Fetch active room members
+    const { data: members } = useActiveRoomMembersQuery(room?.room_id ?? null, {
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+    
+    // Build member list text with "You" detection and "..." overflow
+    const getMemberListText = (): string => {
+        if (!members || members.length === 0) {
+            return room?.is_group ? 'Group conversation' : 'Online';
+        }
+        
+        // Filter active members only
+        const activeMembers = members.filter(m => m.is_active);
+        
+        if (activeMembers.length === 0) {
+            return room?.is_group ? 'Group conversation' : 'Online';
+        }
+        
+        // Extract display names: "You" for current user, username for others
+        // Same detection logic as RegularMembersSection.tsx: member.member_id === currentUserMemberId
+        const displayNames = activeMembers.map(m => 
+            currentUserMemberId && m.member_id === currentUserMemberId 
+                ? 'You' 
+                : m.user.username
+        );
+        
+        // Limit to 3 items for display, use "..." for overflow (like WhatsApp)
+        if (displayNames.length <= 3) {
+            return displayNames.join(', ');
+        }
+        
+        // 4+ members: show first 2 + "..." indicator
+        return `${displayNames[1]}, ${displayNames[2]}, ${displayNames[3]}, ${displayNames[4]}, . . .`;
+    };
+    
+    const memberListText = getMemberListText();
     
     // Close panel when clicking outside
     useEffect(() => {
@@ -105,7 +144,7 @@ const ChatRoom = ({ room, darkmode, onBack }: ChatRoomProps) => {
                             {room.name}
                         </h2>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {room.is_group ? 'Group conversation' : 'Online'}
+                            {memberListText}
                         </p>
                     </div>
                 </div>
