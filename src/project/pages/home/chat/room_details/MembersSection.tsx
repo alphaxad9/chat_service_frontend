@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { MemberQueryResponseDTO } from "../../../../../apis/chat/members/types";
 import RegularMembersSection from "./member_actions/RegularMembersSection";
 import AddMemberModal from "./member_actions/AddMemberModal";
-import {ConfirmationDialog, Toast } from "./member_actions/ConfirmationDialog";
-import MemberActionsMenu from "./member_actions/MemberActionsMenu";
+import { Toast } from "./member_actions/ConfirmationDialog";
 import { 
     Users as UsersIcon, 
     Crown, 
@@ -25,25 +24,29 @@ import {
     useLeaveRoom,
     
 } from "../../../../../apis/chat/members/hooks";
+
 interface MembersSectionProps {
     roomId: string;
     darkmode: boolean;
 }
+
 const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     const [activeMenuMemberId, setActiveMenuMemberId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-    const [confirmation, setConfirmation] = useState<any>(null);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);   
+    
     const { 
         data: members, 
         isLoading: isLoadingMembers,
         refetch: refetchMembers,
     } = useActiveRoomMembersQuery(roomId);
+    
     const { data: myMembership } = useMyMembershipQuery(roomId);
     const promoteMutation = usePromoteMember();
     const demoteMutation = useDemoteMember();
     const removeMutation = useRemoveMember();
     const leaveMutation = useLeaveRoom();
+    
     // Debug logging to check permissions
     useEffect(() => {
         console.log("MembersSection Debug:");
@@ -55,9 +58,12 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     const isCurrentUserOwner = myMembership?.is_admin === true;
     const isCurrentUserAdmin = myMembership?.is_admin === true;
     const currentUserMemberId = myMembership?.member_id || '';
+    
     const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
     };
+    
     const getMemberDisplayName = (member: MemberQueryResponseDTO) => {
         if (member.user.first_name && member.user.last_name) {
             return `${member.user.first_name} ${member.user.last_name}`.trim();
@@ -65,80 +71,57 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
         if (member.user.first_name) return member.user.first_name;
         return member.user.username;
     };
+    
     const handlePromoteMember = async (memberId: string) => {
         const member = members?.find(m => m.member_id === memberId);
         const memberName = member ? getMemberDisplayName(member) : 'this member';
         
-        setConfirmation({
-            title: 'Promote to Admin',
-            message: `Are you sure you want to promote ${memberName} to admin?`,
-            onConfirm: () => {
-                setConfirmation(null);
-                showToast(`Promoting ${memberName}...`, 'info');
-                promoteMutation.mutate(memberId, {
-                    onSuccess: () => {
-                        showToast(`${memberName} is now an admin`, 'success');
-                        setTimeout(() => refetchMembers(), 500);
-                        setActiveMenuMemberId(null);
-                    },
-                    onError: (error: any) => showToast(error?.message || 'Failed to promote member', 'error'),
-                });
-            }
+        showToast(`Promoting ${memberName}...`, 'info');
+        promoteMutation.mutate(memberId, {
+            onSuccess: () => {
+                showToast(`${memberName} is now an admin`, 'success');
+                setTimeout(() => refetchMembers(), 500);
+                setActiveMenuMemberId(null);
+            },
+            onError: (error: any) => showToast(error?.message || 'Failed to promote member', 'error'),
         });
     };
+    
     const handleDemoteMember = async (memberId: string) => {
         const member = members?.find(m => m.member_id === memberId);
         const memberName = member ? getMemberDisplayName(member) : 'this member';
-        setConfirmation({
-            title: 'Demote to Member',
-            message: `Are you sure you want to demote ${memberName} to regular member?`,
-            onConfirm: () => {
-                setConfirmation(null);
-                showToast(`Demoting ${memberName}...`, 'info');
-                demoteMutation.mutate(memberId, {
-                    onSuccess: () => {
-                        showToast(`${memberName} is now a regular member`, 'success');
-                        setTimeout(() => refetchMembers(), 500);
-                        setActiveMenuMemberId(null);
-                    },
-                    onError: (error: any) => showToast(error?.message || 'Failed to demote member', 'error'),
-                });
-            }
+        
+        showToast(`Demoting ${memberName}...`, 'info');
+        demoteMutation.mutate(memberId, {
+            onSuccess: () => {
+                showToast(`${memberName} is now a regular member`, 'success');
+                setTimeout(() => refetchMembers(), 500);
+                setActiveMenuMemberId(null);
+            },
+            onError: (error: any) => showToast(error?.message || 'Failed to demote member', 'error'),
         });
     };
+    
     const handleRemoveMember = async (memberId: string, memberName: string) => {
-        setConfirmation({
-            title: 'Remove Member',
-            message: `Are you sure you want to remove ${memberName} from this group?`,
-            onConfirm: () => {
-                setConfirmation(null);
-                showToast(`Removing ${memberName}...`, 'info');
-                removeMutation.mutate(memberId, {
-                    onSuccess: () => {
-                        showToast(`${memberName} has been removed`, 'success');
-                        setTimeout(() => refetchMembers(), 500);
-                        setActiveMenuMemberId(null);
-                    },
-                    onError: (error: any) => showToast(error?.message || 'Failed to remove member', 'error'),
-                });
-            }
+        showToast(`Removing ${memberName}...`, 'info');
+        removeMutation.mutate(memberId, {
+            onSuccess: () => {
+                showToast(`${memberName} has been removed`, 'success');
+                setTimeout(() => refetchMembers(), 500);
+                setActiveMenuMemberId(null);
+            },
+            onError: (error: any) => showToast(error?.message || 'Failed to remove member', 'error'),
         });
     };
+    
     const handleLeaveRoom = async () => {
-        setConfirmation({
-            title: 'Leave Group',
-            message: 'Are you sure you want to leave this group?',
-            onConfirm: () => {
-                setConfirmation(null);
-                showToast('Leaving group...', 'info');
-                leaveMutation.mutate(currentUserMemberId, {
-                    onSuccess: () => {
-                        showToast('You have left the group', 'success');
-                        setTimeout(() => window.location.href = '/chat', 1500);
-                    },
-                    onError: (error: any) => showToast(error?.message || 'Failed to leave group', 'error'),
-                });
-            }
+        showToast('Leaving group...', 'info');
+        leaveMutation.mutate(currentUserMemberId, {
+            onSuccess: () => {
+                showToast('You have left the group', 'success');
+                setTimeout(() => window.location.href = '/chat', 1500);
+            },
+            onError: (error: any) => showToast(error?.message || 'Failed to leave group', 'error'),
         });
     };
     
@@ -254,21 +237,35 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                             
                                             {(isCurrentUserOwner || (isCurrentUserAdmin && member.member_id !== currentUserMemberId)) && (
                                                 <div className="relative">
-                                                    <button onClick={() => setActiveMenuMemberId(activeMenuMemberId === member.member_id ? null : member.member_id)} className={`p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${darkmode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
+                                                    <button 
+                                                        onClick={() => setActiveMenuMemberId(activeMenuMemberId === member.member_id ? null : member.member_id)} 
+                                                        className={`p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${darkmode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                                    >
                                                         <MoreVertical className="w-4 h-4" />
                                                     </button>
                                                     {activeMenuMemberId === member.member_id && (
-                                                        <MemberActionsMenu
-                                                            member={member}
-                                                            currentUserMemberId={currentUserMemberId}
-                                                            isCurrentUserOwner={isCurrentUserOwner}
-                                                            isCurrentUserAdmin={isCurrentUserAdmin}
-                                                            darkmode={darkmode}
-                                                            onClose={() => setActiveMenuMemberId(null)}
-                                                            onPromote={handlePromoteMember}
-                                                            onDemote={handleDemoteMember}
-                                                            onRemove={handleRemoveMember}
-                                                        />
+                                                        <div className={`absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg shadow-lg overflow-hidden animate-slide-in-right ${darkmode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleDemoteMember(member.member_id);
+                                                                    setActiveMenuMemberId(null);
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                            >
+                                                                <Shield className="w-4 h-4" />
+                                                                Demote to Member
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    handleRemoveMember(member.member_id, getMemberDisplayName(member));
+                                                                    setActiveMenuMemberId(null);
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-50 text-red-600'}`}
+                                                            >
+                                                                <User className="w-4 h-4" />
+                                                                Remove Member
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
@@ -306,7 +303,6 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
             </div>
             
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            {confirmation && <ConfirmationDialog {...confirmation} darkmode={darkmode} onCancel={() => setConfirmation(null)} />}
             
             <AddMemberModal 
                 isOpen={showAddMemberModal}
@@ -321,7 +317,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                     from { opacity: 0; transform: translateX(100px); }
                     to { opacity: 1; transform: translateX(0); }
                 }
-                .animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+                .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
