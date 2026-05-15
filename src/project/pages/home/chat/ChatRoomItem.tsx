@@ -1,5 +1,5 @@
 // src/project/pages/home/chat/ChatRoomItem.tsx
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Users, ChevronRight, Clock, CheckCheck, Check } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { MyRoomsHomePageListDto, getLastMessageDisplayText } from "../../../../apis/chat/rooms/types";
@@ -18,6 +18,33 @@ const ChatRoomItem = memo(({
     darkmode, 
     onClick 
 }: ChatRoomItemProps) => {
+    const [unreadCount, setUnreadCount] = useState(room.my_unread_messages_in_room);
+    const [lastMessageId, setLastMessageId] = useState(room.last_message?.id || null);
+
+    // Track changes to unread count and last message
+    useEffect(() => {
+        // Update unread count when new message comes in
+        if (room.my_unread_messages_in_room !== unreadCount) {
+            // Only increment if it's a new message from someone else
+            if (room.last_message && room.last_message.id !== lastMessageId && !room.last_message.is_mine) {
+                setUnreadCount(prev => prev + 1);
+                setLastMessageId(room.last_message.id);
+            } else {
+                setUnreadCount(room.my_unread_messages_in_room);
+                if (room.last_message) {
+                    setLastMessageId(room.last_message.id);
+                }
+            }
+        }
+    }, [room.my_unread_messages_in_room, room.last_message, unreadCount, lastMessageId]);
+
+    // Reset unread count when room becomes active (user opens the chat)
+    useEffect(() => {
+        if (isActive && unreadCount > 0) {
+            setUnreadCount(0);
+        }
+    }, [isActive, unreadCount]);
+
     const formatTime = (dateString: string | null | undefined) => {
         if (!dateString) return "";
         try {
@@ -60,6 +87,8 @@ const ChatRoomItem = memo(({
                 };
         }
     };
+
+    const displayUnreadCount = isActive ? 0 : unreadCount;
 
     return (
         <div 
@@ -201,16 +230,16 @@ const ChatRoomItem = memo(({
                             )}
                         </div>
                         
-                        {/* Unread messages count */}
-                        {room.my_unread_messages_in_room > 0 && (
+                        {/* Unread messages count - Changed to purple */}
+                        {displayUnreadCount > 0 && (
                             <div className="flex-shrink-0 ml-2">
                                 <div className={`min-w-[18px] h-4 rounded-full flex items-center justify-center px-1 shadow-sm transition-all duration-200 ${
                                     isActive 
                                         ? 'bg-purple-500 scale-105' 
-                                        : 'bg-red-500'
+                                        : 'bg-purple-500'
                                 }`}>
                                     <span className="text-white text-[10px] font-bold leading-none">
-                                        {room.my_unread_messages_in_room > 99 ? '99+' : room.my_unread_messages_in_room}
+                                        {displayUnreadCount > 99 ? '99+' : displayUnreadCount}
                                     </span>
                                 </div>
                             </div>

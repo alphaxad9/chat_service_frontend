@@ -277,18 +277,13 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                 >
                                     {/* Header Row: Sender Name + Three-dots Menu */}
                                     <div className="flex items-center justify-between mb-0.5 gap-2">
-                                        {/* Sender name for non-mine messages with beautiful color */}
-                                        {!message.is_mine && (
-                                            <span 
-                                                className="text-xs font-semibold"
-                                                style={{ color: usernameColor }}
-                                            >
-                                                {message.sender_username}
-                                            </span>
-                                        )}
-                                        
-                                        {/* Spacer for alignment when no sender name */}
-                                        {message.is_mine && <span className="text-xs">&nbsp;</span>}
+                                        {/* Sender name - shows "You" for own messages, username for others */}
+                                        <span 
+                                            className="text-xs font-semibold"
+                                            style={!message.is_mine ? { color: usernameColor } : {}}
+                                        >
+                                            {message.is_mine ? 'You' : message.sender_username}
+                                        </span>
                                         
                                         {/* Three-dots menu button - only show when not editing */}
                                         {!isEditing && (

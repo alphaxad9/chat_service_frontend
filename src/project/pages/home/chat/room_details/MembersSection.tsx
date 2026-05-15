@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { MemberQueryResponseDTO } from "../../../../../apis/chat/members/types";
+import { UserView } from "../../../../../apis/chat/rooms/types";
 import RegularMembersSection from "./member_actions/RegularMembersSection";
-import AddMemberModal from "./member_actions/AddMemberModal";
 import { Toast } from "./member_actions/ConfirmationDialog";
 import { 
     Users as UsersIcon, 
@@ -14,6 +14,9 @@ import {
     Shield,
     Loader2,
     UserPlus,
+    Search,
+    CheckCircle,
+    X
 } from "lucide-react";
 import { 
     useActiveRoomMembersQuery, 
@@ -22,8 +25,9 @@ import {
     useDemoteMember,
     useRemoveMember,
     useLeaveRoom,
-    
+    useCreateMember
 } from "../../../../../apis/chat/members/hooks";
+import { useUsersToAddInGroup } from "../../../../../apis/chat/rooms/hooks";
 
 interface MembersSectionProps {
     roomId: string;
@@ -33,7 +37,10 @@ interface MembersSectionProps {
 const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     const [activeMenuMemberId, setActiveMenuMemberId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-    const [showAddMemberModal, setShowAddMemberModal] = useState(false);   
+    const [showAddMembers, setShowAddMembers] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+    const [selectedRole, setSelectedRole] = useState<"USER" | "ADMIN">("USER");
     
     const { 
         data: members, 
@@ -42,18 +49,12 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     } = useActiveRoomMembersQuery(roomId);
     
     const { data: myMembership } = useMyMembershipQuery(roomId);
+    const { data: availableUsers, isLoading: isLoadingUsers } = useUsersToAddInGroup(roomId, { limit: 100 });
     const promoteMutation = usePromoteMember();
     const demoteMutation = useDemoteMember();
     const removeMutation = useRemoveMember();
     const leaveMutation = useLeaveRoom();
-    
-    // Debug logging to check permissions
-    useEffect(() => {
-        console.log("MembersSection Debug:");
-        console.log("myMembership:", myMembership);
-        console.log("isCurrentUserAdmin:", myMembership?.is_admin);
-        console.log("roomId:", roomId);
-    }, [myMembership, roomId]);
+    const createMember = useCreateMember();
     
     const isCurrentUserOwner = myMembership?.is_admin === true;
     const isCurrentUserAdmin = myMembership?.is_admin === true;
@@ -70,6 +71,12 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
         }
         if (member.user.first_name) return member.user.first_name;
         return member.user.username;
+    };
+    
+    const getUserDisplayName = (user: UserView) => {
+        if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`.trim();
+        if (user.first_name) return user.first_name;
+        return user.username;
     };
     
     const handlePromoteMember = async (memberId: string) => {
@@ -125,10 +132,35 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
         });
     };
     
-    const handleMemberAdded = () => {
-        showToast('Members added successfully!', 'success');
-        refetchMembers();
+    const handleAddMembers = async () => {
+        if (selectedUsers.size === 0) return;
+        
+        const promises = Array.from(selectedUsers).map(userId => 
+            createMember.mutateAsync({ 
+                roomId, 
+                data: { user_id: userId, status: selectedRole } 
+            })
+        );
+        
+        try {
+            await Promise.all(promises);
+            showToast(`Added ${selectedUsers.size} member(s) successfully!`, 'success');
+            refetchMembers();
+            setSelectedUsers(new Set());
+            setSearchTerm("");
+            setShowAddMembers(false);
+        } catch (error) {
+            console.error("Failed to add members:", error);
+            showToast('Failed to add members', 'error');
+        }
     };
+    
+    const filteredUsers = availableUsers?.filter(user => 
+        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
     
     const admins = members?.filter(m => m.is_admin) || [];
     const regularMembers = members?.filter(m => !m.is_admin) || [];
@@ -160,22 +192,25 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                     </div>
                     
                     <div className="flex gap-2">
-                        {/* Add Member Button - Show for admins/owners with better visibility */}
+                        {/* Add Member Button */}
                         {(isCurrentUserAdmin || isCurrentUserOwner) && (
                             <button
-                                onClick={() => setShowAddMemberModal(true)}
+                                onClick={() => setShowAddMembers(!showAddMembers)}
                                 className={`
                                     flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all
-                                    bg-purple-500 text-white hover:bg-purple-600
+                                    ${showAddMembers 
+                                        ? 'bg-gray-500 text-white hover:bg-gray-600' 
+                                        : 'bg-purple-500 text-white hover:bg-purple-600'
+                                    }
                                     shadow-sm hover:shadow-md
                                 `}
                             >
                                 <UserPlus className="w-4 h-4" />
-                                Add Member
+                                {showAddMembers ? 'Cancel' : 'Add Member'}
                             </button>
                         )}
                         
-                        {/* Leave Room Button - Only for regular members */}
+                        {/* Leave Room Button */}
                         {myMembership && !isCurrentUserAdmin && !isCurrentUserOwner && (
                             <button
                                 onClick={handleLeaveRoom}
@@ -195,6 +230,160 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                         )}
                     </div>
                 </div>
+
+                {/* Add Members Inline Section */}
+                {showAddMembers && (
+                    <div className={`mb-4 p-4 rounded-lg ${darkmode ? 'bg-gray-800/50' : 'bg-gray-50'} border ${darkmode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        {/* Role Selection */}
+                        <div className="mb-3">
+                            <label className={`block text-xs font-medium mb-1 ${darkmode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                Assign Role
+                            </label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setSelectedRole("USER")}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                                        selectedRole === "USER"
+                                            ? 'bg-purple-500 text-white'
+                                            : darkmode 
+                                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                                >
+                                    Member
+                                </button>
+                                <button
+                                    onClick={() => setSelectedRole("ADMIN")}
+                                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                                        selectedRole === "ADMIN"
+                                            ? 'bg-purple-500 text-white'
+                                            : darkmode 
+                                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                                >
+                                    Admin
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Search */}
+                        <div className="relative mb-3">
+                            <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${darkmode ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <input
+                                type="text"
+                                placeholder="Search users to add..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className={`
+                                    w-full pl-7 pr-2 py-1.5 text-sm rounded-md border transition-colors
+                                    ${darkmode 
+                                        ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-500' 
+                                        : 'bg-white border-gray-300 text-gray-900 focus:border-purple-500'
+                                    }
+                                    focus:outline-none focus:ring-2 focus:ring-purple-500/20
+                                `}
+                            />
+                        </div>
+                        
+                        {/* Users List */}
+                        <div className="max-h-[200px] overflow-y-auto mb-3 space-y-1">
+                            {isLoadingUsers ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                                </div>
+                            ) : filteredUsers.length === 0 ? (
+                                <div className="text-center py-4">
+                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        No users available to add
+                                    </p>
+                                </div>
+                            ) : (
+                                filteredUsers.map((user) => (
+                                    <button
+                                        key={user.user_id}
+                                        onClick={() => {
+                                            const newSelected = new Set(selectedUsers);
+                                            if (newSelected.has(user.user_id)) {
+                                                newSelected.delete(user.user_id);
+                                            } else {
+                                                newSelected.add(user.user_id);
+                                            }
+                                            setSelectedUsers(newSelected);
+                                        }}
+                                        className={`
+                                            w-full flex items-center gap-2 p-2 rounded-md transition-all text-left
+                                            ${selectedUsers.has(user.user_id)
+                                                ? darkmode 
+                                                    ? 'bg-purple-500/20 border border-purple-500' 
+                                                    : 'bg-purple-50 border border-purple-500'
+                                                : darkmode 
+                                                    ? 'hover:bg-gray-700' 
+                                                    : 'hover:bg-gray-100'
+                                            }
+                                        `}
+                                    >
+                                        {/* Avatar */}
+                                        {user.profile_picture ? (
+                                            <img src={user.profile_picture} alt={user.username} className="w-7 h-7 rounded-full object-cover" />
+                                        ) : (
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500`}>
+                                                <span className="text-white text-xs font-medium">
+                                                    {getUserDisplayName(user).charAt(0).toUpperCase()}
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        {/* User Info */}
+                                        <div className="flex-1">
+                                            <p className={`text-sm font-medium ${darkmode ? 'text-white' : 'text-gray-900'}`}>
+                                                {getUserDisplayName(user)}
+                                            </p>
+                                            <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                @{user.username}
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Checkmark */}
+                                        {selectedUsers.has(user.user_id) && (
+                                            <CheckCircle className="w-4 h-4 text-purple-500" />
+                                        )}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    setShowAddMembers(false);
+                                    setSelectedUsers(new Set());
+                                    setSearchTerm("");
+                                }}
+                                className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${darkmode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddMembers}
+                                disabled={selectedUsers.size === 0 || createMember.isPending}
+                                className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                                    selectedUsers.size === 0 || createMember.isPending
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-purple-500 hover:bg-purple-600 text-white'
+                                }`}
+                            >
+                                {createMember.isPending ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <UserPlus className="w-4 h-4" />
+                                )}
+                                Add {selectedUsers.size > 0 && `(${selectedUsers.size})`}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {isLoadingMembers ? (
                     <div className="flex items-center justify-center py-8">
@@ -303,14 +492,6 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
             </div>
             
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
-            <AddMemberModal 
-                isOpen={showAddMemberModal}
-                onClose={() => setShowAddMemberModal(false)}
-                roomId={roomId}
-                darkmode={darkmode}
-                onMemberAdded={handleMemberAdded}
-            />
             
             <style>{`
                 @keyframes slide-in-right {
