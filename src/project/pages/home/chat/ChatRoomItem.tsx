@@ -1,9 +1,10 @@
 // src/project/pages/home/chat/ChatRoomItem.tsx
 import { memo } from 'react';
-import { Users, ChevronRight, Clock } from "lucide-react";
+import { Users, ChevronRight, Clock, CheckCheck, Check } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { MyRoomsHomePageListDto, getLastMessageDisplayText } from "../../../../apis/chat/rooms/types";
 import { Camera } from 'lucide-react';
+
 interface ChatRoomItemProps {
     room: MyRoomsHomePageListDto;
     isActive: boolean;
@@ -29,6 +30,39 @@ const ChatRoomItem = memo(({
     const getFirstLetter = (name: string) => {
         return name.charAt(0).toUpperCase();
     };
+
+    // Get status icon and color for last message (only if message is mine)
+    const getStatusIndicator = (status: "SENT" | "RECEIVED" | "SEEN") => {
+        switch (status) {
+            case 'SENT':
+                return {
+                    icon: <Check className="w-3 h-3" />,
+                    color: '#9CA3AF', // Gray for sent
+                    title: 'Sent'
+                };
+            case 'RECEIVED':
+                return {
+                    icon: <CheckCheck className="w-3 h-3" />,
+                    color: '#9CA3AF', // Gray for received
+                    title: 'Delivered'
+                };
+            case 'SEEN':
+                return {
+                    icon: <CheckCheck className="w-3 h-3" />,
+                    color: '#34D399', // Green for seen
+                    title: 'Seen'
+                };
+            default:
+                return {
+                    icon: <Check className="w-3 h-3" />,
+                    color: '#9CA3AF',
+                    title: 'Sent'
+                };
+        }
+    };
+
+    // Debug log to check unread count
+    console.log(`Room: ${room.name}, Unread: ${room.my_unread_messages_in_room}`);
 
     return (
         <div 
@@ -106,11 +140,11 @@ const ChatRoomItem = memo(({
                         )}
                     </div>
                     
-                    {/* Last Message Preview and Unread Count Row */}
-                    <div className="flex items-center justify-between mt-1">
-                        <div className="flex-1 truncate">
+                    {/* Last Message Preview Row */}
+                    <div className="flex items-center mt-1">
+                        <div className="flex-1 min-w-0">
                             {room.last_message ? (
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                     {room.last_message.is_mine && (
                                         <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">You:</span>
                                     )}
@@ -118,7 +152,23 @@ const ChatRoomItem = memo(({
                                         {getLastMessageDisplayText(room.last_message)}
                                     </p>
                                     {room.last_message.has_image && (
-                                        <Camera className="w-16 h-5 mx-auto" />
+                                        <Camera className="w-4 h-4 flex-shrink-0" />
+                                    )}
+                                    {/* Status indicator for my messages only */}
+                                    {room.last_message.is_mine && (
+                                        (() => {
+                                            const displayStatus = room.is_group ? "SENT" : room.last_message!.status;
+                                            const statusIndicator = getStatusIndicator(displayStatus);
+                                            return (
+                                                <span 
+                                                    className="inline-flex items-center flex-shrink-0" 
+                                                    style={{ color: statusIndicator.color }}
+                                                    title={room.is_group ? "Sent to group" : statusIndicator.title}
+                                                >
+                                                    {statusIndicator.icon}
+                                                </span>
+                                            );
+                                        })()
                                     )}
                                 </div>
                             ) : (
@@ -128,23 +178,23 @@ const ChatRoomItem = memo(({
                             )}
                         </div>
                         
-                        {/* Unread messages count */}
+                        {/* Unread messages count - NOW WITH !important and better visibility */}
                         {room.my_unread_messages_in_room > 0 && (
-                            <div className="flex-shrink-0 ml-2">
-                                <div className="min-w-[20px] h-5 bg-red-500 rounded-full flex items-center justify-center px-1.5">
+                            <div className="flex-shrink-0 ml-3">
+                                <div className="min-w-[20px] h-5 bg-red-500 rounded-full flex items-center justify-center px-1.5 shadow-sm">
                                     <span className="text-white text-xs font-bold">
                                         {room.my_unread_messages_in_room > 99 ? '99+' : room.my_unread_messages_in_room}
                                     </span>
                                 </div>
                             </div>
                         )}
-                        
-                        {/* Chevron indicator */}
-                        <ChevronRight className={`w-5 h-5 transition-opacity duration-300 ml-2 flex-shrink-0 ${
-                            isActive ? 'opacity-100 text-purple-500' : 'opacity-0 group-hover:opacity-100 text-gray-400'
-                        }`} />
                     </div>
                 </div>
+                
+                {/* Chevron indicator - moved outside room info for better alignment */}
+                <ChevronRight className={`w-5 h-5 transition-opacity duration-300 ml-2 flex-shrink-0 ${
+                    isActive ? 'opacity-100 text-purple-500' : 'opacity-0 group-hover:opacity-100 text-gray-400'
+                }`} />
             </div>
         </div>
     );
