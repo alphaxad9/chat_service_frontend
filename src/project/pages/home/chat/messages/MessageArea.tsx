@@ -495,12 +495,20 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                 </div>
                             </div>
                             
-                            {/* Avatar for my messages */}
+                            {/* Avatar for my messages - show profile image if available, otherwise gradient fallback */}
                             {message.is_mine && (
                                 <div className="flex-shrink-0 ml-2 self-end mb-1">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
-                                        <span className="text-white text-xs font-medium">You</span>
-                                    </div>
+                                    {message.sender_profile_image ? (
+                                        <img 
+                                            src={message.sender_profile_image} 
+                                            alt="Your profile"
+                                            className="w-8 h-8 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+                                            <span className="text-white text-xs font-medium">You</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

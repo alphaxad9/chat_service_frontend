@@ -9,7 +9,7 @@ import { useUsersForNewConversation } from "../../../apis/chat/rooms/hooks";
 import LoadingRooms from "./components/loading_rooms";
 import EmptyRoomsList from "./components/empty_room_list";
 import LoadingRoomError from "./components/loading_rooms_error";
-// ⚠️ VERIFY: Ensure this path points to ChatRoomItem.tsx (NOT MessageInput.tsx)
+import icon from '../../../icons8-dynamics-365-ios-17-filled/icons8-dynamics-365-200.png'
 import ChatRoomItem from "./chat/ChatRoomItem";
 import ChatRoom from "./chat/ChatRoom";
 import './feed.css'; 
@@ -100,9 +100,25 @@ const Feed = () => {
                         ${darkmode ? 'bg-dark' : 'bg-light'}
                     `}>
                         <div className="flex items-center justify-between mb-2">
-                            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                Chats
-                            </h1>
+                            <div className="flex items-center gap-2">
+                                {/* Icon with reduced size and light color filter for dark mode */}
+                                <img 
+                                    src={icon} 
+                                    alt="Chat Icon" 
+                                    className={`
+                                        w-8 h-8 object-contain transition-all duration-300
+                                        ${darkmode ? 'brightness-0 invert' : ''}
+                                    `}
+                                />
+                                
+                                {/* Zedvye Chat Text */}
+                                <span className={`
+                                    text-lg font-semibold tracking-tight
+                                    ${darkmode ? 'text-white' : 'text-gray-800'}
+                                `}>
+                                    Zedvye
+                                </span>
+                            </div>
                             
                             {/* New Chat Button */}
                             <button
@@ -124,11 +140,8 @@ const Feed = () => {
                             </button>
                         </div>
                         
-                        {!showNewChat ? (
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                {roomList.length} conversation{roomList.length !== 1 ? 's' : ''}
-                            </p>
-                        ) : (
+                        {/* Search Input for New Chat */}
+                        {showNewChat && (
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
