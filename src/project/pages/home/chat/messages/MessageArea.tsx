@@ -248,7 +248,7 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                         <img 
                                             src={message.sender_profile_image} 
                                             alt={message.sender_username}
-                                            className="w-8 h-8 rounded-full object-cover"
+                                            className="w-8 h-8 rounded-full object-cover ring-2 ring-white/20"
                                         />
                                     ) : (
                                         <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: usernameColor }}>
@@ -266,10 +266,10 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                     className={`
                                         rounded-2xl px-3 py-1.5 transition-all duration-200 relative
                                         ${message.is_mine
-                                            ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-sm'
+                                            ? 'bg-gradient-to-l from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg'
                                             : darkmode
-                                            ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-gray-100 shadow-sm'
-                                            : 'bg-gradient-to-r from-blue-100 to-indigo-100 text-gray-900 shadow-sm border border-blue-200'
+                                                ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 shadow-lg border border-gray-700/50'
+                                                : 'bg-gradient-to-br from-gray-100 via-white to-gray-100 text-gray-900 shadow-lg border border-gray-300/50'
                                         }
                                         ${message.is_reply ? 'pt-2.5' : ''}
                                         ${isEditing ? 'ring-2 ring-purple-500' : ''}
@@ -298,7 +298,7 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                                     opacity-0 group-hover:opacity-100
                                                     ${darkmode 
                                                         ? 'hover:bg-gray-700 text-gray-300' 
-                                                        : 'hover:bg-white/50 text-gray-600'
+                                                        : 'hover:bg-black/10 text-gray-600'
                                                     }
                                                 `}
                                                 title="Message options"
@@ -381,8 +381,8 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                             ${message.is_mine 
                                                 ? 'border-white/30' 
                                                 : darkmode 
-                                                    ? 'border-gray-400' 
-                                                    : 'border-blue-400'
+                                                    ? 'border-gray-500' 
+                                                    : 'border-gray-400'
                                             }
                                         `}>
                                             <span className="opacity-80">
@@ -468,12 +468,6 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                                         {message.created_at ? format(new Date(message.created_at), 'HH:mm') : ''}
                                                     </span>
                                                     
-                                                    {message.updated_at && message.updated_at !== message.created_at && (
-                                                        <span className="text-[10px] opacity-50 italic ml-1">
-                                                            (edited)
-                                                        </span>
-                                                    )}
-                                                    
                                                     {message.is_mine && statusIndicator && (
                                                         <span 
                                                             className="text-[10px] inline-flex items-center" 
@@ -497,10 +491,10 @@ const MessageArea = ({ darkmode, roomId }: MessageAreaProps) => {
                                         <img 
                                             src={message.sender_profile_image} 
                                             alt="Your profile"
-                                            className="w-8 h-8 rounded-full object-cover"
+                                            className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500/30"
                                         />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md ring-2 ring-purple-500/30">
                                             <span className="text-white text-xs font-medium">You</span>
                                         </div>
                                     )}

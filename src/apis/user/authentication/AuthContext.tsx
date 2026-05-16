@@ -88,14 +88,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             queryClient.invalidateQueries({ queryKey: ['myProfile'] });
         },
     });
+// Inside AuthProvider
 
-    const { mutateAsync: login, isPending: isLoggingIn } = useMutation({
-        mutationFn: apiLogin,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-            queryClient.invalidateQueries({ queryKey: ['myProfile'] });
-        },
-    });
+const { mutateAsync: login, isPending: isLoggingIn } = useMutation({
+  mutationFn: apiLogin,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+    queryClient.removeQueries({ queryKey: ['rooms'] });
+    queryClient.removeQueries({ queryKey: ['rooms', 'users-for-conversation'] });
+
+    // ✅ FORCE FULL RELOAD — this fixes the issue completely
+    window.location.href = '/';           // or '/chat' or wherever your Feed lives
+  },
+});
+
+const { mutateAsync: logout, isPending: isLoggingOut } = useMutation({
+  mutationFn: apiLogout,
+  onSuccess: () => {
+    queryClient.removeQueries({ queryKey: ['userProfile'] });
+    queryClient.removeQueries({ queryKey: ['myProfile'] });
+    queryClient.removeQueries({ queryKey: ['rooms'] });
+    queryClient.removeQueries({ queryKey: ['rooms', 'users-for-conversation'] });
+
+    // ✅ FORCE FULL RELOAD
+    window.location.href = '/authentication';      // or wherever your login page is
+  },
+});
 
     const { mutateAsync: deleteAccount, isPending: isDeletingAccount } = useMutation({
         mutationFn: apiDeleteAccount,
@@ -117,13 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
     });
 
-    const { mutateAsync: logout, isPending: isLoggingOut } = useMutation({
-        mutationFn: apiLogout,
-        onSuccess: () => {
-            queryClient.removeQueries({ queryKey: ['userProfile'] });
-            queryClient.removeQueries({ queryKey: ['myProfile'] });
-        },
-    });
 
     // ----------------------------------------------------
     // FIX: MUST FORCE EVERYTHING TO BOOLEAN

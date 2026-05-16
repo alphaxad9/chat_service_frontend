@@ -1,5 +1,6 @@
 // service2/my-frontend/src/apis/chat/rooms/hooks.tsx
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import { useAuth } from '../../user/authentication/AuthContext';
 import {
   // Command mutations
   createGroupRoom,
@@ -43,9 +44,14 @@ import {
 export const useRoomsForHomePage = (
   options?: Omit<UseQueryOptions<MyRoomsHomePageListDto[], Error>, 'queryKey' | 'queryFn'>
 ) => {
+  const { profile } = useAuth();
+
   return useQuery({
-    queryKey: ['rooms', 'home'],
+    queryKey: ['rooms', 'home', profile?.id],     // user-specific
     queryFn: getRoomsForHomePage,
+
+    // ── ONLY RUN WHEN WE HAVE A REAL USER ─────────────────────
+    enabled: Boolean(profile?.id),                // ← THIS FIXES THE RACE CONDITION
 
     // ── Polling every 3 seconds ─────────────────────
     refetchInterval: 3000,                    // Query every 3 seconds
@@ -93,6 +99,10 @@ export const useRoomById = (
  * 
  * @param params - Optional query params for pagination/filtering
  */
+/**
+ * Fetch users available to start a new conversation with
+ * GET /api/query/rooms/users-for-conversation
+ */
 export const useUsersForNewConversation = (
   params?: {
     limit?: number;
@@ -108,9 +118,16 @@ export const useUsersForNewConversation = (
     profile_picture: string | null;
   }>, Error>, 'queryKey' | 'queryFn'>
 ) => {
+  const { profile } = useAuth();
+
   return useQuery({
-    queryKey: ['rooms', 'users-for-conversation', params],
+    queryKey: ['rooms', 'users-for-conversation', profile?.id, params], // ← now user-specific
     queryFn: () => getUsersForNewConversation(params),
+
+    // ── ONLY RUN WHEN WE HAVE A REAL USER ─────────────────────
+    enabled: Boolean(profile?.id),                // ← prevents showing old data
+
+    // You can override these if you pass options from the component
     ...options,
   });
 };

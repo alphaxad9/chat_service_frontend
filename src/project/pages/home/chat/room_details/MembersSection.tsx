@@ -1,6 +1,4 @@
-// src/project/pages/chat/room_details/MembersSection.tsx
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MemberQueryResponseDTO } from "../../../../../apis/chat/members/types";
 import { UserView } from "../../../../../apis/chat/rooms/types";
 import RegularMembersSection from "./member_actions/RegularMembersSection";
@@ -168,7 +166,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     // Show loading state for membership check
     if (!myMembership && !isLoadingMembers) {
         return (
-            <div className={`pt-4 border-t ${darkmode ? 'border-gray-800' : 'border-gray-200'}`}>
+            <div className={`pt-4 border-t ${darkmode ? 'border-black' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
                     <span className={`ml-2 ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>Loading permissions...</span>
@@ -179,14 +177,14 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
     
     return (
         <>
-            <div className={`pt-4 border-t ${darkmode ? 'border-gray-800' : 'border-gray-200'}`}>
+            <div className={`pt-4 border-t ${darkmode ? 'border-black' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <UsersIcon className="w-5 h-5 text-purple-500" />
                         <h3 className={`font-semibold ${darkmode ? 'text-white' : 'text-gray-900'}`}>
                             Members
                         </h3>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${darkmode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${darkmode ? 'bg-black text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
                             {members?.length || 0}
                         </span>
                     </div>
@@ -199,8 +197,8 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                 className={`
                                     flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all
                                     ${showAddMembers 
-                                        ? 'bg-gray-500 text-white hover:bg-gray-600' 
-                                        : 'bg-purple-500 text-white hover:bg-purple-600'
+                                        ? 'bg-gray-600 text-white hover:bg-gray-700' 
+                                        : 'bg-purple-600 text-white hover:bg-purple-700'
                                     }
                                     shadow-sm hover:shadow-md
                                 `}
@@ -218,7 +216,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                 className={`
                                     flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
                                     ${darkmode 
-                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                                        ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-800' 
                                         : 'bg-red-50 text-red-600 hover:bg-red-100'
                                     }
                                     ${leaveMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
@@ -233,7 +231,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
 
                 {/* Add Members Inline Section */}
                 {showAddMembers && (
-                    <div className={`mb-4 p-4 rounded-lg ${darkmode ? 'bg-gray-800/50' : 'bg-gray-50'} border ${darkmode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <div className={`mb-4 p-4 rounded-lg ${darkmode ? 'bg-black/50 border border-gray-800' : 'bg-gray-50 border border-gray-200'}`}>
                         {/* Role Selection */}
                         <div className="mb-3">
                             <label className={`block text-xs font-medium mb-1 ${darkmode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -244,9 +242,9 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                     onClick={() => setSelectedRole("USER")}
                                     className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                                         selectedRole === "USER"
-                                            ? 'bg-purple-500 text-white'
+                                            ? 'bg-purple-600 text-white'
                                             : darkmode 
-                                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                                ? 'bg-black text-gray-300 border border-gray-700 hover:bg-gray-900' 
                                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                                 >
@@ -256,9 +254,9 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                     onClick={() => setSelectedRole("ADMIN")}
                                     className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                                         selectedRole === "ADMIN"
-                                            ? 'bg-purple-500 text-white'
+                                            ? 'bg-purple-600 text-white'
                                             : darkmode 
-                                                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                                                ? 'bg-black text-gray-300 border border-gray-700 hover:bg-gray-900' 
                                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                                 >
@@ -269,7 +267,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                         
                         {/* Search */}
                         <div className="relative mb-3">
-                            <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${darkmode ? 'text-gray-500' : 'text-gray-400'}`} />
+                            <Search className={`absolute left-2 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 ${darkmode ? 'text-gray-600' : 'text-gray-400'}`} />
                             <input
                                 type="text"
                                 placeholder="Search users to add..."
@@ -278,7 +276,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                 className={`
                                     w-full pl-7 pr-2 py-1.5 text-sm rounded-md border transition-colors
                                     ${darkmode 
-                                        ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-500' 
+                                        ? 'bg-black border-gray-700 text-white focus:border-purple-500 placeholder-gray-600' 
                                         : 'bg-white border-gray-300 text-gray-900 focus:border-purple-500'
                                     }
                                     focus:outline-none focus:ring-2 focus:ring-purple-500/20
@@ -294,7 +292,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                 </div>
                             ) : filteredUsers.length === 0 ? (
                                 <div className="text-center py-4">
-                                    <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    <p className={`text-xs ${darkmode ? 'text-gray-500' : 'text-gray-500'}`}>
                                         No users available to add
                                     </p>
                                 </div>
@@ -315,10 +313,10 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                             w-full flex items-center gap-2 p-2 rounded-md transition-all text-left
                                             ${selectedUsers.has(user.user_id)
                                                 ? darkmode 
-                                                    ? 'bg-purple-500/20 border border-purple-500' 
+                                                    ? 'bg-purple-600/20 border border-purple-600' 
                                                     : 'bg-purple-50 border border-purple-500'
                                                 : darkmode 
-                                                    ? 'hover:bg-gray-700' 
+                                                    ? 'hover:bg-gray-900' 
                                                     : 'hover:bg-gray-100'
                                             }
                                         `}
@@ -327,7 +325,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                         {user.profile_picture ? (
                                             <img src={user.profile_picture} alt={user.username} className="w-7 h-7 rounded-full object-cover" />
                                         ) : (
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500`}>
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600`}>
                                                 <span className="text-white text-xs font-medium">
                                                     {getUserDisplayName(user).charAt(0).toUpperCase()}
                                                 </span>
@@ -339,7 +337,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                             <p className={`text-sm font-medium ${darkmode ? 'text-white' : 'text-gray-900'}`}>
                                                 {getUserDisplayName(user)}
                                             </p>
-                                            <p className={`text-xs ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                            <p className={`text-xs ${darkmode ? 'text-gray-500' : 'text-gray-500'}`}>
                                                 @{user.username}
                                             </p>
                                         </div>
@@ -361,7 +359,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                     setSelectedUsers(new Set());
                                     setSearchTerm("");
                                 }}
-                                className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${darkmode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${darkmode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                             >
                                 Cancel
                             </button>
@@ -370,8 +368,8 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                 disabled={selectedUsers.size === 0 || createMember.isPending}
                                 className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                                     selectedUsers.size === 0 || createMember.isPending
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-purple-500 hover:bg-purple-600 text-white'
+                                        ? 'bg-gray-700 cursor-not-allowed text-gray-400'
+                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
                                 }`}
                             >
                                 {createMember.isPending ? (
@@ -394,24 +392,24 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                         {/* Admins Section */}
                         {admins.length > 0 && (
                             <div>
-                                <h4 className={`text-xs font-semibold mb-2 uppercase tracking-wider flex items-center gap-2 ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <h4 className={`text-xs font-semibold mb-2 uppercase tracking-wider flex items-center gap-2 ${darkmode ? 'text-gray-500' : 'text-gray-500'}`}>
                                     <Shield className="w-3 h-3" />
                                     Administrators ({admins.length})
                                 </h4>
                                 <div className="space-y-2">
                                     {admins.map((member) => (
-                                        <div key={member.member_id} className={`relative flex items-center gap-3 p-2 rounded-lg ${darkmode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'} transition-colors group`}>
+                                        <div key={member.member_id} className={`relative flex items-center gap-3 p-2 rounded-lg ${darkmode ? 'hover:bg-gray-900' : 'hover:bg-gray-50'} transition-colors group`}>
                                             <div className="relative">
                                                 {member.user.profile_picture ? (
                                                     <img src={member.user.profile_picture} alt={getMemberDisplayName(member)} className="w-10 h-10 rounded-full object-cover" />
                                                 ) : (
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500`}>
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600`}>
                                                         <span className="text-white text-sm font-medium">{getMemberDisplayName(member).charAt(0).toUpperCase()}</span>
                                                     </div>
                                                 )}
                                                 <div className="absolute -bottom-1 -right-1">
-                                                    <div className={`p-0.5 rounded-full ${darkmode ? 'bg-gray-900' : 'bg-white'}`}>
-                                                        {member.is_admin ? <Crown className="w-4 h-4 text-yellow-500" /> : <User className="w-4 h-4 text-gray-400" />}
+                                                    <div className={`p-0.5 rounded-full ${darkmode ? 'bg-black' : 'bg-white'}`}>
+                                                        {member.is_admin ? <Crown className="w-4 h-4 text-yellow-500" /> : <User className="w-4 h-4 text-gray-500" />}
                                                     </div>
                                                 </div>
                                             </div>
@@ -419,7 +417,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <p className={`font-medium truncate ${darkmode ? 'text-white' : 'text-gray-900'}`}>{getMemberDisplayName(member)}</p>
-                                                    {member.member_id === currentUserMemberId && <span className={`text-xs px-1.5 py-0.5 rounded ${darkmode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>You</span>}
+                                                    {member.member_id === currentUserMemberId && <span className={`text-xs px-1.5 py-0.5 rounded ${darkmode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>You</span>}
                                                 </div>
                                                 <p className={`text-xs ${darkmode ? 'text-gray-500' : 'text-gray-400'}`}>Admin</p>
                                             </div>
@@ -428,18 +426,18 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                                 <div className="relative">
                                                     <button 
                                                         onClick={() => setActiveMenuMemberId(activeMenuMemberId === member.member_id ? null : member.member_id)} 
-                                                        className={`p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${darkmode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                                        className={`p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${darkmode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}
                                                     >
                                                         <MoreVertical className="w-4 h-4" />
                                                     </button>
                                                     {activeMenuMemberId === member.member_id && (
-                                                        <div className={`absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg shadow-lg overflow-hidden animate-slide-in-right ${darkmode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+                                                        <div className={`absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-lg shadow-lg overflow-hidden animate-slide-in-right ${darkmode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`}>
                                                             <button
                                                                 onClick={() => {
                                                                     handleDemoteMember(member.member_id);
                                                                     setActiveMenuMemberId(null);
                                                                 }}
-                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-700'}`}
+                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-900 text-gray-200' : 'hover:bg-gray-50 text-gray-700'}`}
                                                             >
                                                                 <Shield className="w-4 h-4" />
                                                                 Demote to Member
@@ -449,7 +447,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                                                                     handleRemoveMember(member.member_id, getMemberDisplayName(member));
                                                                     setActiveMenuMemberId(null);
                                                                 }}
-                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-50 text-red-600'}`}
+                                                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${darkmode ? 'hover:bg-gray-900 text-red-400' : 'hover:bg-gray-50 text-red-600'}`}
                                                             >
                                                                 <User className="w-4 h-4" />
                                                                 Remove Member
@@ -484,7 +482,7 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                         {(!members || members.length === 0) && !isLoadingMembers && (
                             <div className="text-center py-8">
                                 <UsersIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                <p className={`text-sm ${darkmode ? 'text-gray-400' : 'text-gray-500'}`}>No members found</p>
+                                <p className={`text-sm ${darkmode ? 'text-gray-500' : 'text-gray-500'}`}>No members found</p>
                             </div>
                         )}
                     </div>
@@ -501,8 +499,9 @@ const MembersSection = ({ roomId, darkmode }: MembersSectionProps) => {
                 .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1F2937; }
             `}</style>
         </>
     );

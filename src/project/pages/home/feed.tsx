@@ -35,10 +35,10 @@ const Feed = () => {
 
     const { data: availableUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = useUsersForNewConversation({ limit: 50 });
 
-    useEffect(() => {
-        refetchRooms();
-        refetchUsers();
-    }, [refetchRooms, refetchUsers]);
+    // useEffect(() => {
+    //     refetchRooms();
+    //     refetchUsers();
+    // }, [refetchRooms, refetchUsers]);
     
     const currentRoom = useMemo(() => {
         if (!currentRoomId) return null;
